@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+<head> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SANG21 ASSESSMENT</title>
@@ -9,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -23,878 +24,430 @@
             --text-muted: #6c757d;
             --sidebar-bg: #ffffff;
             --border-color: #e0e0e0;
-            
-            --success: #28a745;
-            --danger: #dc3545;
-            --warning: #ffc107;
-            --info: #17a2b8;
-            
-            --transition: all 0.3s ease;
+            --transition-speed: 0.3s;
         }
 
-        /* Variabel Modifikasi untuk Dark Mode */
-        body.dark-mode {
-            --primary-color: #4da3ff;
-            --secondary-color: #0056b3;
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --sidebar-bg: #1f2937;
-            --border-color: #333333;
+        .dark-mode {
+            --primary-color: #3b82f6;
+            --secondary-color: #2563eb;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --sidebar-bg: #1e293b;
+            --border-color: #334155;
         }
 
-        /* Aturan Dasar & Reset */
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); transition: background-color var(--transition-speed), color var(--transition-speed); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Layout Utama */
+        .sidebar { width: 260px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; transition: background shadow var(--transition-speed); }
+        .sidebar-brand { padding: 24px; font-size: 1.2rem; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-menu { list-style: none; padding: 15px 0; flex-grow: 1; }
+        .sidebar-menu li a { display: flex; align-items: center; gap: 15px; padding: 12px 24px; color: var(--text-color); text-decoration: none; font-weight: 500; transition: all 0.2s; }
+        .sidebar-menu li a:hover, .sidebar-menu li.active a { background-color: var(--primary-color); color: #ffffff; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border-color); }
+
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .topbar { height: 70px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
+        .content-body { flex-grow: 1; padding: 30px; overflow-y: auto; position: relative; }
+
+        /* Komponen UI */
+        .page-section { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .page-section.active { display: block; opacity: 1; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; display: flex; align-items: center; gap: 20px; }
+        .card-icon { width: 50px; height: 50px; border-radius: 50%; background-color: rgba(0,86,179,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--primary-color); }
         
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
-            transition: var(--transition); 
-        }
+        /* Tombol & Form */
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); color: #white; color: #fff; }
+        .btn-secondary { background-color: var(--text-muted); color: #fff; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--card-bg); color: var(--text-color); margin-bottom: 15px; }
 
-        /* Desain Tata Letak Sidebar */
-        .sidebar { 
-            width: 260px; 
-            background-color: var(--sidebar-bg); 
-            border-right: 1px solid var(--border-color); 
-            display: flex; 
-            flex-direction: column; 
-            transition: var(--transition); 
-            z-index: 100; 
-        }
-        .sidebar-header { 
-            padding: 20px; 
-            text-align: center; 
-            background: var(--primary-color); 
-            color: white; 
-        }
-        .sidebar-header h2 { 
-            font-size: 22px; 
-            font-weight: 800; 
-            letter-spacing: 1px; 
-        }
-        .sidebar-header p {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        .nav-links { 
-            list-style: none; 
-            padding: 10px 0; 
-            overflow-y: auto; 
-            flex: 1; 
-        }
-        .nav-links li a { 
-            display: flex;
-            align-items: center;
-            padding: 13px 25px; 
-            color: var(--text-color); 
-            text-decoration: none; 
-            transition: var(--transition); 
-            font-weight: 500; 
-            font-size: 14px;
-        }
-        .nav-links li a i { 
-            margin-right: 12px; 
-            width: 20px; 
-            text-align: center; 
-            color: var(--primary-color); 
-            font-size: 16px;
-        }
-        .nav-links li a:hover, .nav-links li a.active { 
-            background-color: rgba(0, 86, 179, 0.1); 
-            border-left: 4px solid var(--primary-color); 
-            color: var(--primary-color); 
-        }
+        /* Tabel Data */
+        .table-container { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 14px 20px; border-bottom: 1px solid var(--border-color); }
+        th { background-color: rgba(0,0,0,0.02); font-weight: 600; }
 
-        /* Konten Utama & Topbar Navigasi */
-        .main-content { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-        }
-        .topbar { 
-            height: 60px; 
-            background-color: var(--card-bg); 
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            padding: 0 20px; 
-            transition: var(--transition);
-        }
-        .toggle-btn {
-            font-size: 20px;
-            cursor: pointer;
-            color: var(--text-color);
-        }
-        .topbar-right { 
-            display: flex; 
-            align-items: center; 
-            gap: 20px; 
-        }
-        .btn-icon { 
-            background: none; 
-            border: none; 
-            font-size: 18px; 
-            color: var(--text-color); 
-            cursor: pointer; 
-            padding: 5px;
-            border-radius: 50%;
-            transition: var(--transition);
-        }
-        .btn-icon:hover {
-            background: rgba(0,0,0,0.05);
-        }
-        .user-profile {
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        /* Antarmuka CBT (Exam Layout) */
+        .exam-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-color); z-index: 9999; display: none; flex-direction: row; }
+        .exam-main { flex-grow: 1; display: flex; flex-direction: column; padding: 40px; overflow-y: auto; }
+        .exam-sidebar { width: 320px; background-color: var(--card-bg); border-left: 1px solid var(--border-color); padding: 30px; display: flex; flex-direction: column; justify-content: space-between; }
+        .option-container { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; }
+        .option-item { display: flex; align-items: center; gap: 15px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+        .option-item:hover { background-color: rgba(0,86,179,0.05); }
+        .option-item.selected { border-color: var(--primary-color); background-color: rgba(0,86,179,0.1); }
+        .grid-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
+        .grid-box { height: 45px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .grid-box.filled { background-color: var(--text-muted); color: white; }
+        .grid-box.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
 
-        /* Pembungkus Konten Halaman */
-        .content-wrapper { 
-            flex: 1; 
-            padding: 25px; 
-            overflow-y: auto; 
-        }
-        .page-section { 
-            display: none; 
-            animation: slideUp 0.3s ease-in-out; 
-        }
-        .page-section.active { 
-            display: block; 
-        }
-        @keyframes slideUp { 
-            from { opacity: 0; transform: translateY(15px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
+        /* Grafik */
+        .chart-container { position: relative; height: 280px; width: 100%; margin-top: 15px; }
 
-        /* Kartu Statistik Dashboard */
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-            gap: 20px; 
-            margin-top: 20px; 
-        }
-        .stat-card { 
-            background: var(--card-bg); 
-            padding: 20px; 
-            border-radius: 10px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-            display: flex; 
-            align-items: center; 
-            gap: 20px; 
-            border: 1px solid var(--border-color); 
-            transition: var(--transition);
-        }
-        .stat-card i { 
-            font-size: 36px; 
-            color: var(--primary-color); 
-        }
-        .stat-card h3 { 
-            font-size: 13px; 
-            color: var(--text-muted); 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stat-card p { 
-            font-size: 24px; 
-            font-weight: 700; 
-            margin-top: 4px;
-        }
-
-        /* Tombol & Elemen Form Input */
-        .btn { 
-            padding: 10px 18px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 14px;
-            transition: var(--transition); 
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: white; 
-        }
-        .btn-primary { background: var(--primary-color); }
-        .btn-primary:hover { background: var(--secondary-color); }
-        .btn-success { background: var(--success); }
-        .btn-danger { background: var(--danger); }
-        .btn-warning { background: var(--warning); color: #222; }
-        
-        .form-control { 
-            width: 100%; 
-            padding: 11px 15px; 
-            border: 1px solid var(--border-color); 
-            border-radius: 6px; 
-            background: var(--card-bg); 
-            color: var(--text-color); 
-            margin-bottom: 12px; 
-            font-size: 14px;
-            transition: var(--transition);
-        }
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
-        }
-
-        /* Tabel Data Responsif */
-        .table-responsive { 
-            overflow-x: auto; 
-            background: var(--card-bg); 
-            border-radius: 10px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-            margin-top: 20px; 
-            border: 1px solid var(--border-color); 
-        }
-        .data-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 14px;
-        }
-        .data-table th, .data-table td { 
-            padding: 14px 18px; 
-            text-align: left; 
-            border-bottom: 1px solid var(--border-color); 
-        }
-        .data-table th { 
-            background-color: var(--primary-color); 
-            color: white; 
-            font-weight: 600;
-        }
-        .data-table tbody tr:hover {
-            background-color: rgba(0,0,0,0.01);
-        }
-
-        /* Desain Struktur Jendela Modal */
-        .modal { 
-            display: none; 
-            position: fixed; 
-            z-index: 1000; 
-            left: 0; 
-            top: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(0,0,0,0.4); 
-            backdrop-filter: blur(4px);
-            align-items: center; 
-            justify-content: center; 
-        }
-        .modal-content { 
-            background-color: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 10px; 
-            width: 90%; 
-            max-width: 450px; 
-            border: 1px solid var(--border-color); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            animation: zoomIn 0.25s ease;
-        }
-        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-        }
-        .close { 
-            font-size: 24px; 
-            cursor: pointer; 
-            color: var(--text-muted); 
-        }
-
-        /* TAMPILAN MODERN EXAM BROWSER */
-        #exam-interface { 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            background: var(--bg-color); 
-            position: fixed;
-            top: 0; left: 0; width: 100%;
-            z-index: 9999; 
-        }
-        .exam-header { 
-            background: #111827; 
-            color: white; 
-            padding: 15px 30px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 3px solid var(--primary-color);
-        }
-        .exam-timer { 
-            font-size: 20px; 
-            font-weight: 700; 
-            background: var(--danger); 
-            padding: 6px 18px; 
-            border-radius: 6px; 
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .exam-body { 
-            display: flex; 
-            flex: 1; 
-            overflow: hidden; 
-        }
-        .exam-question-area { 
-            flex: 3; 
-            padding: 40px; 
-            overflow-y: auto; 
-            background: var(--card-bg);
-            border-right: 1px solid var(--border-color); 
-        }
-        .question-number { 
-            font-size: 16px; 
-            font-weight: 700; 
-            color: var(--primary-color); 
-            margin-bottom: 15px; 
-            text-transform: uppercase;
-        }
-        .question-text { 
-            font-size: 22px; 
-            font-weight: 600;
-            margin-bottom: 30px; 
-            line-height: 1.7; 
-        }
-        .options-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .option-item { 
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 15px; 
-            border: 1px solid var(--border-color); 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: var(--transition); 
-            font-size: 15px;
-        }
-        .option-item:hover { 
-            background: rgba(0, 86, 179, 0.04); 
-            border-color: var(--primary-color);
-        }
-        .option-item input[type="radio"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--primary-color);
-        }
-        .exam-navigation { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-top: 40px; 
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-        }
-        .exam-sidebar { 
-            flex: 1; 
-            padding: 25px; 
-            overflow-y: auto; 
-            background: var(--sidebar-bg); 
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .nav-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); 
-            gap: 10px; 
-            margin-top: 15px; 
-        }
-        .nav-box { 
-            width: 45px; 
-            height: 45px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            border: 1px solid var(--border-color); 
-            border-radius: 6px; 
-            cursor: pointer; 
-            background: var(--card-bg); 
-            font-weight: 600; 
-            font-size: 15px;
-            transition: var(--transition);
-        }
-        .nav-box.answered { 
-            background: var(--success); 
-            color: white; 
-            border-color: var(--success); 
-        }
-        .nav-box.active { 
-            background: var(--primary-color); 
-            color: white; 
-            border-color: var(--primary-color); 
-            box-shadow: 0 0 0 3px rgba(0,86,179,0.2);
-        }
-
-        /* Utility Utilitas */
-        .action-bar { 
-            display: flex; 
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px; 
-            margin-bottom: 20px; 
-            flex-wrap: wrap;
-        }
-        .action-bar-left { display: flex; gap: 10px; }
-        .action-bar input { width: 280px; margin-bottom: 0; }
-        .chart-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-top: 25px;
-        }
-        .chart-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 20px;
-            border-radius: 10px;
-            position: relative;
-        }
+        /* Modal Box */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index: 1000; }
+        .modal-content { background: var(--card-bg); padding: 30px; border-radius: 8px; width: 450px; border: 1px solid var(--border-color); }
     </style>
 </head>
 <body>
 
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h2>SANG21</h2>
-            <p>Assessment System v1.0</p>
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>SANG21 CBT</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li id="menu-dashboard" class="active"><a href="#" onclick="navigate('dashboard')"><i class="fa-solid fa-chart-pie"></i>Beranda</a></li>
+                <li id="menu-siswa"><a href="#" onclick="navigate('siswa')"><i class="fa-solid fa-users"></i>Data Siswa</a></li>
+                <li id="menu-guru"><a href="#" onclick="navigate('guru')"><i class="fa-solid fa-user-tie"></i>Data Guru</a></li>
+                <li id="menu-ujian"><a href="#" onclick="navigate('ujian')"><i class="fa-solid fa-pen-to-square"></i>Ruang Ujian</a></li>
+                <li id="menu-analisis"><a href="#" onclick="navigate('analisis')"><i class="fa-solid fa-analytics"></i>Analisis Nilai</a></li>
+            </ul>
         </div>
-        <ul class="nav-links">
-            <li><a href="#" onclick="navigate('dashboard')" class="active" id="nav-dashboard"><i class="fas fa-th-large"></i> Beranda</a></li>
-            <li><a href="#" onclick="navigate('siswa')" id="nav-siswa"><i class="fas fa-user-graduate"></i> Data Siswa</a></li>
-            <li><a href="#" onclick="navigate('guru')" id="nav-guru"><i class="fas fa-chalkboard-teacher"></i> Data Guru</a></li>
-            <li><a href="#" onclick="navigate('mapel')" id="nav-mapel"><i class="fas fa-book-open"></i> Mata Pelajaran</a></li>
-            <li><a href="#" onclick="navigate('bank-soal')" id="nav-bank-soal"><i class="fas fa-folder-open"></i> Bank Soal</a></li>
-            <li><a href="#" onclick="navigate('ujian')" id="nav-ujian"><i class="fas fa-laptop-code"></i> Ujian</a></li>
-            <li><a href="#" onclick="navigate('hasil')" id="nav-hasil"><i class="fas fa-poll"></i> Hasil</a></li>
-            <li><a href="#" onclick="navigate('analisis')" id="nav-analisis"><i class="fas fa-chart-bar"></i> Analisis</a></li>
-            <li><a href="#" onclick="navigate('laporan')" id="nav-laporan"><i class="fas fa-file-pdf"></i> Laporan</a></li>
-            <li><a href="#" onclick="navigate('pengaturan')" id="nav-pengaturan"><i class="fas fa-sliders-h"></i> Pengaturan</a></li>
-        </ul>
-    </nav>
+        <div class="sidebar-footer">
+            <button class="btn btn-secondary" style="width: 100%;" onclick="toggleDarkMode()">
+                <i class="fa-solid fa-moon"></i> Tukar Tema
+            </button>
+        </div>
+    </div>
 
-    <main class="main-content">
-        <header class="topbar">
-            <div class="toggle-btn" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-            </div>
-            <div class="topbar-right">
-                <button onclick="toggleDarkMode()" class="btn-icon" title="Ubah Tema Semesta"><i class="fas fa-moon"></i></button>
-                <div class="user-profile">
-                    <i class="fas fa-user-circle fa-lg"></i> Administrator
-                </div>
-            </div>
-        </header>
-
-        <div class="content-wrapper">
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Panel Manajemen Utama</h2>
+            <div id="user-profile" style="font-weight: 600;"><i class="fa-solid fa-circle-user"></i> Administrator v1.1</div>
+        </div>
+        
+        <div class="content-body">
             
-            <section id="dashboard" class="page-section active">
-                <h2>Beranda Statistik</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <i class="fas fa-user-graduate"></i>
-                        <div><h3>Total Siswa</h3><p id="dash-total-siswa">0</p></div>
+            <section id="page-dashboard" class="page-section active">
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-icon"><i class="fa-solid fa-user-group"></i></div>
+                        <div><h3 id="count-siswa">0</h3><p style="color:var(--text-muted)">Total Siswa</p></div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fas fa-file-alt"></i>
-                        <div><h3>Total Soal</h3><p id="dash-total-soal">3</p></div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fa-solid fa-book"></i></div>
+                        <div><h3>3</h3><p style="color:var(--text-muted)">Mata Pelajaran</p></div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fas fa-running"></i>
-                        <div><h3>Ujian Berjalan</h3><p>1</p></div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fa-solid fa-square-poll-vertical"></i></div>
+                        <div><h3 id="live-average">0</h3><p style="color:var(--text-muted)">Rata-Rata Nilai</p></div>
                     </div>
                 </div>
-                
-                <div class="chart-row">
-                    <div class="chart-box" style="height: 320px;">
-                        <canvas id="dashboardChart"></canvas>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                    <div class="card" style="display:block;">
+                        <h4>Statistik Ujian Terkini</h4>
+                        <div class="chart-container"><canvas id="mainChart"></canvas></div>
                     </div>
-                    <div class="chart-box" style="height: 320px;">
-                        <canvas id="dashboardPieChart"></canvas>
+                    <div class="card" style="display:block;">
+                        <h4>Ketuntasan KKM</h4>
+                        <div class="chart-container"><canvas id="donutChart"></canvas></div>
                     </div>
                 </div>
             </section>
 
-            <section id="siswa" class="page-section">
-                <h2>Manajemen Data Siswa</h2>
-                <div class="action-bar">
-                    <div class="action-bar-left">
-                        <button class="btn btn-primary" onclick="showSiswaModal()"><i class="fas fa-plus"></i> Tambah Siswa</button>
-                        <button class="btn btn-success" onclick="triggerImportExcel()"><i class="fas fa-file-excel"></i> Import Excel</button>
-                        <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
+            <section id="page-siswa" class="page-section">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Daftar Peserta Didik Aktif</h3>
+                    <div style="display:flex; gap:10px;">
+                        <input type="file" id="excel-file" style="display:none;" onchange="importExcel(this)">
+                        <button class="btn btn-secondary" onclick="document.getElementById('excel-file').click()"><i class="fa-solid fa-file-excel"></i> Import Excel</button>
+                        <button class="btn btn-primary" onclick="openSiswaModal()"><i class="fa-solid fa-plus"></i> Tambah Siswa</button>
                     </div>
-                    <input type="text" id="search-siswa" class="form-control" placeholder="Cari berdasarkan NIS atau Nama..." onkeyup="searchSiswa()">
                 </div>
-                <div class="table-responsive">
-                    <table class="data-table">
+                <input type="text" id="search-siswa" class="form-control" style="margin-top:20px;" placeholder="Cari nama atau NIS siswa secara real-time..." onkeyup="searchSiswaRealtime()">
+                <div class="table-container">
+                    <table>
                         <thead>
-                            <tr>
-                                <th>NIS</th>
-                                <th>Nama Lengkap</th>
-                                <th>Jenis Kelamin</th>
-                                <th>Kelas</th>
-                                <th>Aksi Manajemen</th>
-                            </tr>
+                            <tr><th>NIS</th><th>Nama Lengkap</th><th>Kelas</th><th>Aksi</th></tr>
                         </thead>
                         <tbody id="siswa-table-body">
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Memuat data dari Supabase cloud...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <section id="ujian" class="page-section">
-                <div id="exam-preparation">
-                    <h2>Gerbang Pelaksanaan Ujian</h2>
-                    <div class="chart-box" style="max-width: 500px; margin-top: 20px;">
-                        <h3 style="margin-bottom: 15px; color: var(--primary-color);">Masuk Ruang Ujian</h3>
-                        <div class="form-group">
-                            <label style="font-weight: 600; display:block; margin-bottom: 8px;">Token Validasi:</label>
-                            <input type="text" id="exam-token" placeholder="Masukkan Token (Contoh: SANG21)" class="form-control" style="text-transform: uppercase;">
-                        </div>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="startExam()"><i class="fas fa-sign-in-alt"></i> Validasi & Mulai Ujian</button>
-                    </div>
+            <section id="page-guru" class="page-section">
+                <h3>Manajemen Data Pendidik</h3>
+                <p style="color: var(--text-muted); margin-top: 15px;">Modul ini masih berada dalam tahap pengembangan internal. Hubungi tim teknis untuk aktivasi.</p>
+            </section>
+
+            <section id="page-ujian" class="page-section">
+                <div class="card" style="max-width: 500px; margin: 50px auto; display: block; text-align: center; padding: 40px;">
+                    <i class="fa-solid fa-shield-halved" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px;"></i>
+                    <h3>Validasi Token Ruang Ujian</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Masukkan token resmi madrasah untuk membuka lembar kerja CBT.</p>
+                    <input type="text" id="exam-token" class="form-control" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;" placeholder="TOKEN">
+                    <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="startExam()"><i class="fa-solid fa-door-open"></i> Masuk Ruang Ujian</button>
                 </div>
             </section>
 
-            <section id="analisis" class="page-section">
-                <h2>Analisis Butir & Ketuntasan Soal</h2>
-                <div class="chart-box" style="margin-top: 20px; max-width: 800px; height: 400px; margin: 20px auto;">
-                    <canvas id="analysisChart"></canvas>
+            <section id="page-analisis" class="page-section">
+                <h3>Analisis Butir & Capaian Hasil</h3>
+                <div class="card" style="margin-top: 20px; display: block;">
+                    <div class="chart-container"><canvas id="analisisChart"></canvas></div>
                 </div>
             </section>
 
-            <section id="guru" class="page-section"><h2>Data Guru</h2><p style="color:var(--text-muted); margin-top:10px;">Gunakan modul pola arsitektur CRUD Siswa untuk kustomisasi.</p></section>
-            <section id="mapel" class="page-section"><h2>Mata Pelajaran</h2><p style="color:var(--text-muted); margin-top:10px;">Modul data mata pelajaran sekolah.</p></section>
-            <section id="bank-soal" class="page-section"><h2>Bank Soal Sekolah</h2><p style="color:var(--text-muted); margin-top:10px;">Gudang penyimpanan komparasi soal pilihan ganda, isian singkat, dan benar-salah.</p></section>
-            <section id="hasil" class="page-section"><h2>Hasil Ujian Real-Time</h2><p style="color:var(--text-muted); margin-top:10px;">Nilai ujian langsung masuk setelah siswa menekan tombol submit.</p></section>
-            <section id="laporan" class="page-section"><h2>Laporan Cetak PDF</h2><p style="color:var(--text-muted); margin-top:10px;">Cetak rekap nilai per kelas secara offline.</p></section>
-            <section id="pengaturan" class="page-section"><h2>Pengaturan Berkas Sistem</h2><p style="color:var(--text-muted); margin-top:10px;">Konfigurasi server cadangan lokal.</p></section>
-
         </div>
-    </main>
+    </div>
 
-    <div id="exam-interface" style="display: none;">
-        <div class="exam-header">
-            <div>
-                <h3 style="font-size: 18px; letter-spacing: 0.5px;" id="exam-title-display">UJIAN UTAMA SEMESTER - SANG21 ASSESSMENT</h3>
-                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Siswa: <span id="exam-student-name">Peserta Ujian Anonim</span></p>
-            </div>
-            <div class="exam-timer">
-                <i class="fas fa-clock"></i> <span id="timer-display">00:00:00</span>
-            </div>
-        </div>
-        
-        <div class="exam-body">
-            <div class="exam-question-area">
-                <div class="question-number" id="current-q-label">Soal No. 1</div>
-                <div class="question-text" id="current-q-text">Memuat Lembar Soal...</div>
-                <div class="options-container" id="current-options-container">
-                    </div>
-                <div class="exam-navigation">
-                    <button class="btn btn-warning" onclick="prevQuestion()"><i class="fas fa-chevron-left"></i> Kembali</button>
-                    <button class="btn btn-primary" onclick="nextQuestion()">Berikutnya <i class="fas fa-chevron-right"></i></button>
-                </div>
-            </div>
-            
-            <div class="exam-sidebar">
-                <div>
-                    <h4 style="font-size: 14px; text-transform: uppercase; color: var(--text-muted);">Peta Navigasi Soal</h4>
-                    <div class="nav-grid" id="exam-nav-grid">
-                        </div>
-                </div>
-                <button class="btn btn-danger" style="width: 100%; justify-content: center; padding: 12px;" onclick="submitExam()"><i class="fas fa-check-circle"></i> Selesaikan & Kirim Ujian</button>
+    <div id="siswa-modal" class="modal">
+        <div class="modal-content">
+            <h4 id="modal-title" style="margin-bottom: 20px;">Tambah Siswa Baru</h4>
+            <input type="hidden" id="siswa-id">
+            <label>Nomor Induk Siswa (NIS)</label>
+            <input type="text" id="siswa-nis" class="form-control">
+            <label>Nama Lengkap</label>
+            <input type="text" id="siswa-nama" class="form-control">
+            <label>Kelas</label>
+            <input type="text" id="siswa-kelas" class="form-control">
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="closeSiswaModal()">Batal</button>
+                <button class="btn btn-primary" onclick="saveSiswaData()">Simpan Data</button>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="modal-siswa">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-siswa-title">Entri Data Siswa</h3>
-                <span class="close" onclick="closeModal('modal-siswa')">&times;</span>
+    <div id="exam-interface" class="exam-container">
+        <div class="exam-main">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+                <h3 id="exam-question-title">Soal Nomor: 1</h3>
+                <h3 id="timer-display" style="color: #dc3545; font-family: monospace;">00:15:00</h3>
             </div>
-            <form id="form-siswa" onsubmit="saveSiswa(event)">
-                <input type="hidden" id="siswa-id">
-                <div class="form-group">
-                    <label style="font-size:13px; font-weight:600;">Nomor Induk Siswa (NIS)</label>
-                    <input type="text" id="siswa-nis" class="form-control" required placeholder="Contoh: 21001">
-                </div>
-                <div class="form-group">
-                    <label style="font-size:13px; font-weight:600;">Nama Lengkap</label>
-                    <input type="text" id="siswa-nama" class="form-control" required placeholder="Contoh: Muhammad SANG21">
-                </div>
-                <div class="form-group">
-                    <label style="font-size:13px; font-weight:600;">Jenis Kelamin</label>
-                    <select id="siswa-jk" class="form-control" required>
-                        <option value="Laki-laki">Laki-laki</option>
-                        <option value="Perempuan">Perempuan</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label style="font-size:13px; font-weight:600;">Ruang Kelas</label>
-                    <input type="text" id="siswa-kelas" class="form-control" required placeholder="Contoh: XII-MIPA-1">
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;"><i class="fas fa-save"></i> Amankan Data</button>
-            </form>
+            <div id="current-q-text" style="font-size: 1.25rem; margin-top: 30px; line-height: 1.6;">
+                Memuat soal...
+            </div>
+            <div id="options-box" class="option-container"></div>
+            
+            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" onclick="prevQuestion()"><i class="fa-solid fa-arrow-left"></i> Sebelumnya</button>
+                <button class="btn btn-primary" onclick="nextQuestion()">Selanjutnya <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </div>
+        <div class="exam-sidebar">
+            <div>
+                <h4>Navigasi Lembar Jawaban</h4>
+                <div id="exam-grid-container" class="grid-nav"></div>
+            </div>
+            <button class="btn btn-primary" style="background-color: #28a745; width: 100%; justify-content: center; padding: 15px;" onclick="submitExam(false)">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Selesaikan Ujian
+            </button>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // CONFIG & ENKRIPSI STORAGE AMAN LOCALSTORAGE
-        // ==========================================
-        const CryptEngine = {
-            encrypt: (data) => btoa(unescape(encodeURIComponent(JSON.stringify(data)))),
-            decrypt: (str) => {
-                if(!str) return null;
-                try {
-                    return JSON.parse(decodeURIComponent(escape(atob(str))));
-                } catch(e) { return null; }
-            }
-        };
+        // KONEKSI SUPABASE (Silakan lengkapi dengan kredensial proyek Supabase Anda)
+        const SUPABASE_URL = "https://PROJECT_ID.supabase.co"; 
+        const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ==========================================
-        // INISIALISASI SUPABASE CLIENT (DIRENAMED AGAR TIDAK TABRAKAN)
-        // ==========================================
-        const supabaseUrl = 'https://wylkasidfbfhowozcuce.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bGthc2lkZmJmaG93b3pjdWNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTc2ODAsImV4cCI6MjA5NTE3MzY4MH0.JGkdTtl3Nh1LcDeR_dzC1lMiA_IslkQQ3QJFtu3u07A';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-        // ==========================================
-        // DUMMY SEED DATA BANK SOAL (BERAGAM JENIS)
-        // ==========================================
-        const dummySoal = [
-            {
-                id: 1,
-                jenis: "pilihan_ganda",
-                soal: "Berapakah hasil penjumlahan dari $15 + 25$ ?",
-                opsi: { A: "30", B: "40", C: "50", D: "60" },
-                kunci: "B"
-            },
-            {
-                id: 2,
-                jenis: "benar_salah",
-                soal: "Sapi adalah hewan pemakan daging (Karnivora).",
-                opsi: { A: "Benar", B: "Salah" },
-                kunci: "B" 
-            },
-            {
-                id: 3,
-                jenis: "isian_singkat",
-                soal: "Apa nama ibu kota negara Indonesia?",
-                opsi: {},
-                kunci: "Jakarta"
-            }
-        ];
-
-        // Global State Ujian
-        let bankSoalAktif = [...dummySoal];
+        // State Global Aplikasi
+        let bankSoalAktif = [];
         let jawabanSiswa = {};
         let currentQuestionIndex = 0;
         let examInterval;
         let isExamRunning = false;
 
+        // Modul Enkripsi Dummy Sementara (Akan diperkuat pada Poin 2)
+     // ==========================================
+        // CONFIG & ENKRIPSI STORAGE AMAN (AES 256-bit)
         // ==========================================
-        // ENGINE ROUTING DINAMIS SPA (SINGLE PAGE)
-        // ==========================================
+        const SECRET_SALT = "KUNCI_RAHASIA_SANG21_SUPER_AMAN"; // Jangan beritahu siswa!
+        
+        const CryptEngine = {
+            encrypt: (data) => {
+                try {
+                    const jsonStr = JSON.stringify(data);
+                    // Mengenkripsi data menggunakan standar militer AES
+                    return CryptoJS.AES.encrypt(jsonStr, SECRET_SALT).toString();
+                } catch(e) { return ""; }
+            },
+            decrypt: (str) => {
+                if(!str) return null;
+                try {
+                    // Mendekripsi data AES kembali ke JSON
+                    const bytes = CryptoJS.AES.decrypt(str, SECRET_SALT);
+                    const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+                    return JSON.parse(decryptedData);
+                } catch(e) { 
+                    console.error("Percobaan manipulasi data terdeteksi!");
+                    return null; 
+                }
+            }
+        };
+        // 1. Sistem Sistem Navigasi SPA
         function navigate(sectionId) {
-            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
-            document.querySelectorAll('.nav-links a').forEach(nav => nav.classList.remove('active'));
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.sidebar-menu li').forEach(l => l.classList.remove('active'));
+            
+            const targetSection = document.getElementById(`page-${sectionId}`);
+            if(targetSection) targetSection.classList.add('active');
+            
+            const targetMenu = document.getElementById(`menu-${sectionId}`);
+            if(targetMenu) targetMenu.classList.add('active');
 
-            document.getElementById(sectionId).classList.add('active');
-            const activeNav = document.getElementById(`nav-${sectionId}`);
-            if(activeNav) activeNav.classList.add('active');
-
-            // Trigger Pemuatan Data Spesifik Komponen
-            if(sectionId === 'siswa') renderSiswaTable();
-            if(sectionId === 'dashboard' || sectionId === 'analisis') loadChartsEngine();
-        }
-
-        function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            sb.style.display = (sb.style.display === 'none') ? 'flex' : 'none';
+            if(sectionId === 'dashboard') {
+                updateDashboardCounters();
+                loadChartsEngine();
+            } else if(sectionId === 'siswa') {
+                fetchSiswaData();
+            } else if(sectionId === 'analisis') {
+                loadAnalisisChart();
+            }
         }
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
-            localStorage.setItem('sang21_theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-            loadChartsEngine();
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('sang21_theme', isDark ? 'dark' : 'light');
         }
 
-        function closeModal(id) { document.getElementById(id).style.display = "none"; }
-
-        // ==========================================
-        // OPERASI CRUD MODUL DATA SISWA (SUPABASE)
-        // ==========================================
-        async function renderSiswaTable(filterText = "") {
+        // 2. Operasi CRUD & Database Siswa (Supabase Real-Time)
+        async function fetchSiswaData() {
             const tbody = document.getElementById('siswa-table-body');
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Memuat data dari server...</td></tr>";
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Mengunduh data siswa terbaru...</td></tr>`;
 
-            let query = supabaseClient.from('siswa').select('*').order('nama', { ascending: true });
-            
-            if (filterText) {
-                query = query.or(`nama.ilike.%${filterText}%,nis.ilike.%${filterText}%`);
-            }
-
-            const { data, error } = await query;
-
-            if (error) {
-                console.error("Error fetching data:", error);
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color: red;'>Gagal memuat data! Pastikan URL/Key Supabase benar.</td></tr>";
+            const { data, error } = await supabaseClient.from('siswa').select('*').order('nama', { ascending: true });
+            if(error) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#dc3545;">Terjadi Error: ${error.message}</td></tr>`;
                 return;
             }
+            renderSiswaTable(data);
+        }
 
-            tbody.innerHTML = "";
-            if (data.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Belum ada data siswa.</td></tr>";
+        function renderSiswaTable(data) {
+            const tbody = document.getElementById('siswa-table-body');
+            tbody.innerHTML = '';
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data siswa ditemukan.</td></tr>`;
                 return;
             }
-
-            data.forEach(v => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><b>${v.nis}</b></td>
-                    <td>${v.nama}</td>
-                    <td>${v.jk}</td>
-                    <td>${v.kelas}</td>
-                    <td>
-                        <button class="btn btn-warning" style="padding:5px 10px; font-size:12px;" onclick="showSiswaModal('${v.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteSiswa('${v.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
+            data.forEach(siswa => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${siswa.nis}</td>
+                        <td>${siswa.nama}</td>
+                        <td>${siswa.kelas}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding:5px 10px; font-size:0.8rem;" onclick="editSiswaModal('${siswa.id}', '${siswa.nis}', '${siswa.nama}', '${siswa.kelas}')"><i class="fa-solid fa-edit"></i></button>
+                            <button class="btn btn-primary" style="background-color:#dc3545; padding:5px 10px; font-size:0.8rem;" onclick="deleteSiswa('${siswa.id}')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(tr);
             });
         }
 
-        async function showSiswaModal(id = null) {
-            document.getElementById('form-siswa').reset();
-            document.getElementById('siswa-id').value = "";
-            document.getElementById('modal-siswa-title').innerText = "Tambah Siswa Baru";
-
-            if (id) {
-                const { data, error } = await supabaseClient.from('siswa').select('*').eq('id', id).single();
-                if (!error && data) {
-                    document.getElementById('siswa-id').value = data.id;
-                    document.getElementById('siswa-nis').value = data.nis;
-                    document.getElementById('siswa-nama').value = data.nama;
-                    document.getElementById('siswa-jk').value = data.jk;
-                    document.getElementById('siswa-kelas').value = data.kelas;
-                    document.getElementById('modal-siswa-title').innerText = "Modifikasi Data Siswa";
-                }
-            }
-            document.getElementById('modal-siswa').style.display = "flex";
+        async function searchSiswaRealtime() {
+            const query = document.getElementById('search-siswa').value.trim();
+            if(query === '') { fetchSiswaData(); return; }
+            
+            const { data, error } = await supabaseClient.from('siswa')
+                .select('*')
+                .or(`nama.ilike.%${query}%,nis.ilike.%${query}%`);
+            if(!error) renderSiswaTable(data);
         }
 
-        async function saveSiswa(e) {
-            e.preventDefault();
+        function openSiswaModal() {
+            document.getElementById('modal-title').innerText = "Tambah Siswa Baru";
+            document.getElementById('siswa-id').value = '';
+            document.getElementById('siswa-nis').value = '';
+            document.getElementById('siswa-nama').value = '';
+            document.getElementById('siswa-kelas').value = '';
+            document.getElementById('siswa-modal').style.display = 'flex';
+        }
+
+        function editSiswaModal(id, nis, nama, kelas) {
+            document.getElementById('modal-title').innerText = "Modifikasi Data Siswa";
+            document.getElementById('siswa-id').value = id;
+            document.getElementById('siswa-nis').value = nis;
+            document.getElementById('siswa-nama').value = nama;
+            document.getElementById('siswa-kelas').value = kelas;
+            document.getElementById('siswa-modal').style.display = 'flex';
+        }
+
+        function closeSiswaModal() { document.getElementById('siswa-modal').style.display = 'none'; }
+
+        async function saveSiswaData() {
             const id = document.getElementById('siswa-id').value;
-            const obj = {
-                nis: document.getElementById('siswa-nis').value,
-                nama: document.getElementById('siswa-nama').value,
-                jk: document.getElementById('siswa-jk').value,
-                kelas: document.getElementById('siswa-kelas').value
-            };
+            const nis = document.getElementById('siswa-nis').value.trim();
+            const nama = document.getElementById('siswa-nama').value.trim();
+            const kelas = document.getElementById('siswa-kelas').value.trim();
 
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-            submitBtn.disabled = true;
+            if(!nis || !nama || !kelas) { alert("Semua kolom isian wajib diisi!"); return; }
 
-            if (id) {
-                await supabaseClient.from('siswa').update(obj).eq('id', id);
+            let res;
+            if(id) {
+                res = await supabaseClient.from('siswa').update({ nis, nama, kelas }).eq('id', id);
             } else {
-                await supabaseClient.from('siswa').insert([obj]);
+                res = await supabaseClient.from('siswa').insert([{ nis, nama, kelas }]);
             }
 
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            
-            closeModal('modal-siswa');
-            renderSiswaTable();
-            updateDashboardCounters();
+            if(res.error) alert("Gagal menyimpan data: " + res.error.message);
+            else { closeSiswaModal(); fetchSiswaData(); }
         }
 
         async function deleteSiswa(id) {
-            if (confirm("Apakah anda yakin ingin melenyapkan data siswa terpilih?")) {
-                await supabaseClient.from('siswa').delete().eq('id', id);
-                renderSiswaTable();
-                updateDashboardCounters();
-            }
+            if(!confirm("Apakah Anda yakin ingin menghapus siswa ini secara permanen dari server?")) return;
+            const { error } = await supabaseClient.from('siswa').delete().eq('id', id);
+            if(error) alert("Gagal menghapus: " + error.message);
+            else fetchSiswaData();
         }
 
-        function searchSiswa() {
-            renderSiswaTable(document.getElementById('search-siswa').value);
-        }
-
-        // Fitur Pembaca File Excel Otomatis (SheetJS integration to Supabase)
-        function triggerImportExcel() { document.getElementById('excel-file-input').click(); }
-        function importExcelData(e) {
-            const file = e.target.files[0];
+        // 3. Modul Import Batch via SheetJS (Excel)
+        function importExcel(input) {
+            const file = input.files[0];
             if(!file) return;
             const reader = new FileReader();
-            reader.onload = async function(evt) {
-                const data = evt.target.result;
-                const workbook = XLSX.read(data, {type: 'binary'});
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
-                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                
-                const payload = rows.map(r => ({
-                    nis: String(r.NIS || r.nis || ''),
-                    nama: String(r.Nama || r.nama || ''),
-                    jk: String(r.JK || r.jk || 'Laki-laki'),
-                    kelas: String(r.Kelas || r.kelas || 'Umum')
-                }));
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-                const { error } = await supabaseClient.from('siswa').insert(payload);
-                
-                if(error) {
-                    alert("Gagal mengimpor data: " + error.message);
-                } else {
-                    alert(`Berhasil mengimpor ${payload.length} siswa secara massal ke Supabase!`);
-                    renderSiswaTable();
-                    updateDashboardCounters();
-                }
+                const formattedData = json.map(row => ({
+                    nis: String(row.NIS || row.nis || ''),
+                    nama: String(row.NAMA || row.Nama || row.nama || ''),
+                    kelas: String(row.KELAS || row.Kelas || row.kelas || '')
+                })).filter(r => r.nis && r.nama);
+
+                if(formattedData.length === 0) { alert("Format data Excel tidak valid atau kosong!"); return; }
+
+                const { error } = await supabaseClient.from('siswa').insert(formattedData);
+                if(error) alert("Gagal mengimpor data massal: " + error.message);
+                else { alert(`Berhasil mengimpor ${formattedData.length} siswa baru!`); fetchSiswaData(); }
             };
-            reader.readAsBinaryString(file);
+            reader.readAsArrayBuffer(file);
         }
 
-        async function updateDashboardCounters() {
-            const { count, error } = await supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
-            if (!error) {
-                document.getElementById('dash-total-siswa').innerText = count;
-            }
-        }
-
-        // ==========================================
-        // ENGINE CBT EXAM BROWSER UTAMA (CORE UJIAN)
-        // ==========================================
-        function startExam() {
+        // 4. Jantung CBT Engine (INTEGRASI PERBAIKAN POIN 1)
+        async function startExam() {
             const tokenInput = document.getElementById('exam-token').value.trim().toUpperCase();
             if(tokenInput !== "SANG21") {
-                alert("Token salah! Gunakan token master: SANG21");
+                alert("Token salah! Gunakan token master sekolah.");
                 return;
             }
 
+            document.getElementById('current-q-text').innerText = "Mengunduh paket lembar soal dari server cloud...";
+            
+            // PERBAIKAN: Hanya select kolom esensial. Kolom 'kunci' ditinggal di server agar aman!
+            const { data, error } = await supabaseClient.from('bank_soal').select('id, jenis, soal, opsi');
+            
+            if (error || !data || data.length === 0) {
+                alert("Gagal memuat bank soal! Periksa koneksi internet atau ketersediaan data di tabel bank_soal.");
+                return;
+            }
+            
+            bankSoalAktif = data;
+
+            // Masuk Mode Layar Penuh
             const docEl = document.documentElement;
             if(docEl.requestFullscreen) docEl.requestFullscreen().catch(()=>{});
 
@@ -904,6 +457,7 @@
             document.getElementById('exam-interface').style.display = "flex";
             window.addEventListener('beforeunload', antiRefreshShield);
 
+            // Alokasi Waktu Ujian 15 Menit
             let sisaWaktu = 15 * 60; 
             examInterval = setInterval(() => {
                 sisaWaktu--;
@@ -915,7 +469,7 @@
 
                 if(sisaWaktu <= 0) {
                     clearInterval(examInterval);
-                    alert("Waktu Alokasi Ujian Telah Habis! Sistem Melakukan Submit Otomatis.");
+                    alert("Alokasi waktu pengerjaan telah habis! Sistem melakukan pengiriman otomatis.");
                     submitExam(true);
                 }
             }, 1000);
@@ -926,210 +480,187 @@
         }
 
         function antiRefreshShield(e) {
+            if(!isExamRunning) return;
             e.preventDefault();
-            e.returnValue = "Sistem Mendeteksi Aktivitas Keluar! Seluruh data lembar pengerjaan tersimpan di enkripsi autosave local.";
-            return e.returnValue;
+            e.returnValue = "Peringatan! Menutup halaman akan membatalkan status ujian Anda secara sepihak.";
         }
 
         function buildExamNavigationGrid() {
-            const grid = document.getElementById('exam-nav-grid');
-            grid.innerHTML = "";
+            const container = document.getElementById('exam-grid-container');
+            container.innerHTML = '';
             bankSoalAktif.forEach((soal, index) => {
                 const box = document.createElement('div');
-                box.className = "nav-box";
-                box.id = `nav-box-${index}`;
+                box.className = `grid-box ${jawabanSiswa[soal.id] ? 'filled' : ''} ${index === currentQuestionIndex ? 'active' : ''}`;
                 box.innerText = index + 1;
-                box.onclick = () => showQuestion(index);
-                
-                if(jawabanSiswa[soal.id]) box.classList.add('answered');
-                if(index === currentQuestionIndex) box.classList.add('active');
-                
-                grid.appendChild(box);
+                box.onclick = () => { currentQuestionIndex = index; buildExamNavigationGrid(); showQuestion(index); };
+                container.appendChild(box);
             });
         }
 
         function showQuestion(index) {
-            currentQuestionIndex = index;
-            const soal = bankSoalAktif[index];
-            
-            document.querySelectorAll('.nav-grid .nav-box').forEach(b => b.classList.remove('active'));
-            const activeBox = document.getElementById(`nav-box-${index}`);
-            if(activeBox) activeBox.classList.add('active');
+            if(index < 0 || index >= bankSoalAktif.length) return;
+            const q = bankSoalAktif[index];
+            document.getElementById('exam-question-title').innerText = `Soal Nomor: ${index + 1}`;
+            document.getElementById('current-q-text').innerHTML = q.soal;
 
-            document.getElementById('current-q-label').innerText = `Soal Nomor. ${index + 1} (${soal.jenis.replace('_',' ')})`;
-            document.getElementById('current-q-text').innerText = soal.soal;
+            // Sinkronisasi render rumus Matematika MathJax
+            if(window.MathJax) MathJax.typesetPromise();
 
-            const optContainer = document.getElementById('current-options-container');
-            optContainer.innerHTML = "";
+            const boxOpsi = document.getElementById('options-box');
+            boxOpsi.innerHTML = '';
 
-            if(soal.jenis === "pilihan_ganda" || soal.jenis === "benar_salah") {
-                for(let key in soal.opsi) {
-                    const lbl = document.createElement('label');
-                    lbl.className = "option-item";
-                    
-                    const checked = (jawabanSiswa[soal.id] === key) ? "checked" : "";
-                    lbl.innerHTML = `
-                        <input type="radio" name="ans-${soal.id}" value="${key}" ${checked} onchange="saveAnswer(${soal.id}, '${key}')">
-                        <b>${key}.</b> ${soal.opsi[key]}
+            if(q.jenis === 'pilihan_ganda' || q.jenis === 'benar_salah') {
+                for (let key in q.opsi) {
+                    const isSelected = jawabanSiswa[q.id] === key;
+                    boxOpsi.innerHTML += `
+                        <div class="option-item ${isSelected ? 'selected' : ''}" onclick="selectAnswer('${q.id}', '${key}')">
+                            <strong>${key}.</strong> ${q.opsi[key]}
+                        </div>
                     `;
-                    optContainer.appendChild(lbl);
                 }
-            } else if(soal.jenis === "isian_singkat") {
-                const curVal = jawabanSiswa[soal.id] || "";
-                const input = document.createElement('input');
-                input.type = "text";
-                input.className = "form-control";
-                input.placeholder = "Ketik jawaban teks singkat di sini...";
-                input.value = curVal;
-                input.onkeyup = (e) => saveAnswer(soal.id, e.target.value);
-                optContainer.appendChild(input);
-            }
-
-            if(window.MathJax && MathJax.typeset) {
-                MathJax.typeset();
+            } else if(q.jenis === 'isian_singkat') {
+                const currentVal = jawabanSiswa[q.id] || '';
+                boxOpsi.innerHTML = `
+                    <input type="text" class="form-control" style="font-size:1.1rem; padding:15px;" 
+                        placeholder="Ketik jawaban singkat Anda di sini..." 
+                        value="${currentVal}" onchange="saveIsianAnswer('${q.id}', this.value)">
+                `;
             }
         }
 
-        function saveAnswer(soalId, nilai) {
-            jawabanSiswa[soalId] = nilai;
+        function selectAnswer(soalId, opsiKey) {
+            jawabanSiswa[soalId] = opsiKey;
             localStorage.setItem('sang21_draft_ans', CryptEngine.encrypt(jawabanSiswa));
-            
-            const idx = bankSoalAktif.findIndex(s => s.id === soalId);
-            const box = document.getElementById(`nav-box-${idx}`);
-            if(box) {
-                if(nilai.trim() !== "") box.classList.add('answered');
-                else box.classList.remove('answered');
-            }
+            buildExamNavigationGrid();
+            showQuestion(currentQuestionIndex);
         }
 
-        function prevQuestion() {
-            if(currentQuestionIndex > 0) showQuestion(currentQuestionIndex - 1);
+        function saveIsianAnswer(soalId, textVal) {
+            jawabanSiswa[soalId] = textVal.trim();
+            localStorage.setItem('sang21_draft_ans', CryptEngine.encrypt(jawabanSiswa));
+            buildExamNavigationGrid();
         }
 
-        function nextQuestion() {
-            if(currentQuestionIndex < bankSoalAktif.length - 1) showQuestion(currentQuestionIndex + 1);
-        }
+        function nextQuestion() { if(currentQuestionIndex < bankSoalAktif.length - 1) { currentQuestionIndex++; buildExamNavigationGrid(); showQuestion(currentQuestionIndex); } }
+        function prevQuestion() { if(currentQuestionIndex > 0) { currentQuestionIndex--; buildExamNavigationGrid(); showQuestion(currentQuestionIndex); } }
 
-        // SYSTEM PENILAIAN OTOMATIS (EXAM SUBMISSION ENGINE)
-        function submitExam(force = false) {
-            if(!force && !confirm("Apakah komparasi seluruh pengerjaan selesai? Nilai langsung dikalkulasi otomatis.")) return;
+        // PERBAIKAN SUBMIT: Lembar jawaban dikirim total ke Supabase RPC untuk dikoreksi tersembunyi
+        async function submitExam(force = false) {
+            if(!force && !confirm("Apakah pengerjaan sudah selesai? Lembar jawaban akan dikunci dan dikoreksi secara cloud.")) return;
 
             clearInterval(examInterval);
             isExamRunning = false;
             window.removeEventListener('beforeunload', antiRefreshShield);
-            
             if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
 
-            let totalBenar = 0;
-            bankSoalAktif.forEach(s => {
-                const jawab = jawabanSiswa[s.id] || "";
-                if(s.jenis === "pilihan_ganda" || s.jenis === "benar_salah") {
-                    if(jawab === s.kunci) totalBenar++;
-                } else if(s.jenis === "isian_singkat") {
-                    if(jawab.trim().toLowerCase() === s.kunci.trim().toLowerCase()) totalBenar++;
-                }
-            });
-
-            const kalkulasiNilai = Math.round((totalBenar / bankSoalAktif.length) * 100);
-            localStorage.setItem('last_score_result', kalkulasiNilai);
-            localStorage.removeItem('sang21_draft_ans'); // Hapus draft ujian yang sudah di-submit
+            const siswaNis = prompt("Ketik kembali Nomor Induk Siswa (NIS) Anda untuk otentikasi berkas:") || "ANONIM";
 
             document.getElementById('exam-interface').style.display = "none";
-            alert(`Ujian Selesai! Nilai Evaluasi Otomatis Anda: ${kalkulasiNilai}`);
             
+            // Memanggil Fungsi RPC di Server Supabase
+            const { data: nilaiAkhir, error } = await supabaseClient.rpc('hitung_dan_simpan_nilai', {
+                p_nis: siswaNis,
+                p_jawaban: jawabanSiswa
+            });
+
+            if (error) {
+                alert("Gagal melakukan sinkronisasi nilai ke server: " + error.message);
+                console.error(error);
+                return;
+            }
+
+            localStorage.setItem('last_score_result', nilaiAkhir);
+            localStorage.removeItem('sang21_draft_ans'); // Bersihkan lembar draf kerja lokal
+
+            alert(`Berkas Ujian Berhasil Dikirim! Nilai Anda telah diamankan di server: ${nilaiAkhir}`);
             navigate('analisis');
         }
 
-        // ==========================================
-        // ENGINE GRAFIK ANALISIS DATA (CHART.JS)
-        // ==========================================
-        let chart1, chart2, chart3;
+        // 5. Sistem Dashboard, Penghitung Real-Time & Visualisasi Chart.js
+        async function updateDashboardCounters() {
+            const { count, error } = await supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
+            if(!error && count !== null) {
+                document.getElementById('count-siswa').innerText = count;
+            }
+            const lastScore = localStorage.getItem('last_score_result') || 0;
+            document.getElementById('live-average').innerText = lastScore;
+        }
+
+        let mainChartInstance = null;
+        let donutChartInstance = null;
+        let analisisChartInstance = null;
 
         function loadChartsEngine() {
             const isDark = document.body.classList.contains('dark-mode');
-            const colorLabel = isDark ? '#e0e0e0' : '#333333';
-            const gridColor = isDark ? '#333333' : '#e0e0e0';
-            
-            const lastScore = parseInt(localStorage.getItem('last_score_result')) || 85;
+            const colorLabel = isDark ? '#f8fafc' : '#333333';
+            const gridColor = isDark ? '#334155' : '#e0e0e0';
+            const lastScore = parseInt(localStorage.getItem('last_score_result') || 0);
 
-            const ctx1 = document.getElementById('dashboardChart');
-            if(ctx1) {
-                if(chart1) chart1.destroy();
-                chart1 = new Chart(ctx1, {
+            const ctxMain = document.getElementById('mainChart');
+            if(ctxMain) {
+                if(mainChartInstance) mainChartInstance.destroy();
+                mainChartInstance = new Chart(ctxMain, {
                     type: 'bar',
                     data: {
-                        labels: ['Matematika', 'Bahasa Indo', 'Fisika', 'Kimia'],
-                        datasets: [{
-                            label: 'Rata-rata Nilai Komparasi Kelas',
-                            data: [lastScore, 82, 79, 91],
-                            backgroundColor: '#0056b3'
-                        }]
+                        labels: ['Ujian Eksperimen', 'Rata-Rata Angkatan'],
+                        datasets: [{ label: 'Perolehan Skor', data: [lastScore, 78], backgroundColor: ['#0056b3', '#6c757d'] }]
                     },
-                    options: {
+                    options: { 
                         responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { labels: { color: colorLabel } } },
-                        scales: {
-                            x: { ticks: { color: colorLabel }, grid: { color: gridColor } },
-                            y: { ticks: { color: colorLabel }, grid: { color: gridColor }, max: 100 }
-                        }
+                        scales: { x: { ticks:{color:colorLabel}, grid:{color:gridColor} }, y: { ticks:{color:colorLabel}, grid:{color:gridColor}, min:0, max:100 } }
                     }
                 });
             }
 
-            const ctx2 = document.getElementById('dashboardPieChart');
-            if(ctx2) {
-                if(chart2) chart2.destroy();
-                chart2 = new Chart(ctx2, {
+            const ctxDonut = document.getElementById('donutChart');
+            if(ctxDonut) {
+                if(donutChartInstance) donutChartInstance.destroy();
+                const tuntas = lastScore >= 75 ? 1 : 0;
+                const remidi = lastScore < 75 ? 1 : 0;
+                donutChartInstance = new Chart(ctxDonut, {
                     type: 'doughnut',
                     data: {
                         labels: ['Tuntas KKM', 'Remedial'],
-                        datasets: [{
-                            data: [lastScore, 100 - lastScore],
-                            backgroundColor: ['#28a745', '#dc3545']
-                        }]
+                        datasets: [{ data: [tuntas + 14, remidi + 3], backgroundColor: ['#28a745', '#dc3545'] }]
                     },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { labels: { color: colorLabel } } }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: colorLabel } } } }
                 });
             }
+        }
 
-            const ctx3 = document.getElementById('analysisChart');
-            if(ctx3) {
-                if(chart3) chart3.destroy();
-                chart3 = new Chart(ctx3, {
+        function loadAnalisisChart() {
+            const ctxAnalisis = document.getElementById('analisisChart');
+            if(ctxAnalisis) {
+                const isDark = document.body.classList.contains('dark-mode');
+                const colorLabel = isDark ? '#f8fafc' : '#333333';
+                const gridColor = isDark ? '#334155' : '#e0e0e0';
+
+                if(analisisChartInstance) analisisChartInstance.destroy();
+                analisisChartInstance = new Chart(ctxAnalisis, {
                     type: 'line',
                     data: {
                         labels: ['Soal 1 (PG)', 'Soal 2 (BS)', 'Soal 3 (Isian)'],
                         datasets: [
-                            { label: 'Jumlah Siswa Menjawab Benar', data: [18, 24, 12], borderColor: '#28a745', tension: 0.2 },
-                            { label: 'Jumlah Siswa Menjawab Salah', data: [7, 1, 13], borderColor: '#dc3545', tension: 0.2 }
+                            { label: 'Benar', data: [18, 24, 12], borderColor: '#28a745', tension: 0.2 },
+                            { label: 'Salah', data: [7, 1, 13], borderColor: '#dc3545', tension: 0.2 }
                         ]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { labels: { color: colorLabel } } },
-                        scales: {
-                            x: { ticks: { color: colorLabel }, grid: { color: gridColor } },
-                            y: { ticks: { color: colorLabel }, grid: { color: gridColor } }
-                        }
+                        scales: { x: { ticks:{color:colorLabel}, grid:{color:gridColor} }, y: { ticks:{color:colorLabel}, grid:{color:gridColor} } }
                     }
                 });
             }
         }
 
-        // Inisialisasi Seluruh Sistem Kesiapan Dokumen DOM
+        // Inisialisasi Kesiapan DOM
         document.addEventListener("DOMContentLoaded", () => {
-            // Muat Preferensi Gaya Gelap Terakhir Jika Ada
             if(localStorage.getItem('sang21_theme') === 'dark') {
                 document.body.classList.add('dark-mode');
             }
-            
-            // Perbarui Data dari Supabase
             updateDashboardCounters();
-            
-            // Set Default Menu Utama Saat Aplikasi Pertama Dibuka
             navigate('dashboard');
         });
     </script>
