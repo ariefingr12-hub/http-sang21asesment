@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         /* CSS Variables & Sistem Tema */
@@ -325,7 +327,7 @@
             background: var(--bg-color); 
             position: fixed;
             top: 0; left: 0; width: 100%;
-            z-index: 9999; /* Menutup seluruh aplikasi saat ujian */
+            z-index: 9999; 
         }
         .exam-header { 
             background: #111827; 
@@ -365,12 +367,12 @@
             margin-bottom: 15px; 
             text-transform: uppercase;
         }
-     .question-text { 
-    font-size: 22px; /* Awalnya 18px, perbesar untuk anak SD */
-    font-weight: 600;
-    margin-bottom: 30px; 
-    line-height: 1.7; 
-}
+        .question-text { 
+            font-size: 22px; 
+            font-weight: 600;
+            margin-bottom: 30px; 
+            line-height: 1.7; 
+        }
         .options-container {
             display: flex;
             flex-direction: column;
@@ -555,7 +557,7 @@
                             </tr>
                         </thead>
                         <tbody id="siswa-table-body">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
             </section>
@@ -672,31 +674,39 @@
         };
 
         // ==========================================
+        // INISIALISASI SUPABASE CLIENT
+        // ==========================================
+        // PENTING: Ganti dengan URL dan Key dari project Supabase Anda!
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // ==========================================
         // DUMMY SEED DATA BANK SOAL (BERAGAM JENIS)
         // ==========================================
         const dummySoal = [
-    {
-        id: 1,
-        jenis: "pilihan_ganda",
-        soal: "Berapakah hasil penjumlahan dari $15 + 25$ ?",
-        opsi: { A: "30", B: "40", C: "50", D: "60" },
-        kunci: "B"
-    },
-    {
-        id: 2,
-        jenis: "benar_salah",
-        soal: "Sapi adalah hewan pemakan daging (Karnivora).",
-        opsi: { A: "Benar", B: "Salah" },
-        kunci: "B" // Jawabannya Salah, karena Sapi itu Herbivora
-    },
-    {
-        id: 3,
-        jenis: "isian_singkat",
-        soal: "Apa nama ibu kota negara Indonesia?",
-        opsi: {},
-        kunci: "Jakarta"
-    }
-];
+            {
+                id: 1,
+                jenis: "pilihan_ganda",
+                soal: "Berapakah hasil penjumlahan dari $15 + 25$ ?",
+                opsi: { A: "30", B: "40", C: "50", D: "60" },
+                kunci: "B"
+            },
+            {
+                id: 2,
+                jenis: "benar_salah",
+                soal: "Sapi adalah hewan pemakan daging (Karnivora).",
+                opsi: { A: "Benar", B: "Salah" },
+                kunci: "B" 
+            },
+            {
+                id: 3,
+                jenis: "isian_singkat",
+                soal: "Apa nama ibu kota negara Indonesia?",
+                opsi: {},
+                kunci: "Jakarta"
+            }
+        ];
 
         // Global State Ujian
         let bankSoalAktif = [...dummySoal];
@@ -732,107 +742,71 @@
             loadChartsEngine();
         }
 
-        // ==========================================
-        // ENGINE DATABASE OFFLINE (INDEXEDDB LOKAL)
-        // ==========================================
-        let db;
-        const dbName = "SANG21_DB";
-        
-        function initIndexedDB() {
-            const request = indexedDB.open(dbName, 1);
-            
-            request.onupgradeneeded = function(e) {
-                db = e.target.result;
-                if(!db.objectStoreNames.contains('siswa')) {
-                    db.createObjectStore('siswa', { keyPath: 'id', autoIncrement: true });
-                }
-            };
-            
-            request.onsuccess = function(e) {
-                db = e.target.result;
-                seedInitialSiswaData();
-                updateDashboardCounters();
-            };
-        }
-
-        function seedInitialSiswaData() {
-            const tx = db.transaction(['siswa'], 'readonly');
-            const store = tx.objectStore('siswa');
-            const countRequest = store.count();
-            
-            countRequest.onsuccess = function() {
-                if(countRequest.result === 0) {
-                    const writeTx = db.transaction(['siswa'], 'readwrite');
-                    const writeStore = writeTx.objectStore('siswa');
-                    const sample = [
-                        { nis: "26001", nama: "Achmad Dhani", jk: "Laki-laki", kelas: "XII-MIPA-1" },
-                        { nis: "26002", nama: "Anissa Rahma", jk: "Perempuan", kelas: "XII-MIPA-2" }
-                    ];
-                    sample.forEach(s => writeStore.add(s));
-                    writeTx.oncomplete = () => renderSiswaTable();
-                } else {
-                    renderSiswaTable();
-                }
-            };
-        }
+        function closeModal(id) { document.getElementById(id).style.display = "none"; }
 
         // ==========================================
-        // OPERASI CRUD MODUL DATA SISWA
+        // OPERASI CRUD MODUL DATA SISWA (SUPABASE)
         // ==========================================
-        function renderSiswaTable(filterText = "") {
-            if(!db) return;
+        async function renderSiswaTable(filterText = "") {
             const tbody = document.getElementById('siswa-table-body');
-            tbody.innerHTML = "";
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Memuat data dari server...</td></tr>";
 
-            const tx = db.transaction(['siswa'], 'readonly');
-            const store = tx.objectStore('siswa');
+            let query = supabase.from('siswa').select('*').order('nama', { ascending: true });
             
-            store.openCursor().onsuccess = function(e) {
-                const cursor = e.target.result;
-                if(cursor) {
-                    const v = cursor.value;
-                    if(v.nama.toLowerCase().includes(filterText.toLowerCase()) || v.nis.includes(filterText)) {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td><b>${v.nis}</b></td>
-                            <td>${v.nama}</td>
-                            <td>${v.jk}</td>
-                            <td>${v.kelas}</td>
-                            <td>
-                                <button class="btn btn-warning" style="padding:5px 10px; font-size:12px;" onclick="showSiswaModal(${v.id})"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteSiswa(${v.id})"><i class="fas fa-trash"></i></button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    }
-                    cursor.continue();
-                }
-            };
+            if (filterText) {
+                query = query.or(`nama.ilike.%${filterText}%,nis.ilike.%${filterText}%`);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error("Error fetching data:", error);
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color: red;'>Gagal memuat data! Pastikan URL/Key Supabase benar.</td></tr>";
+                return;
+            }
+
+            tbody.innerHTML = "";
+            if (data.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Belum ada data siswa.</td></tr>";
+                return;
+            }
+
+            data.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${v.nis}</b></td>
+                    <td>${v.nama}</td>
+                    <td>${v.jk}</td>
+                    <td>${v.kelas}</td>
+                    <td>
+                        <button class="btn btn-warning" style="padding:5px 10px; font-size:12px;" onclick="showSiswaModal('${v.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteSiswa('${v.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
-        function showSiswaModal(id = null) {
+        async function showSiswaModal(id = null) {
             document.getElementById('form-siswa').reset();
             document.getElementById('siswa-id').value = "";
             document.getElementById('modal-siswa-title').innerText = "Tambah Siswa Baru";
 
-            if(id) {
-                const tx = db.transaction(['siswa'], 'readonly');
-                tx.objectStore('siswa').get(id).onsuccess = function(e) {
-                    const data = e.target.result;
+            if (id) {
+                const { data, error } = await supabase.from('siswa').select('*').eq('id', id).single();
+                if (!error && data) {
                     document.getElementById('siswa-id').value = data.id;
                     document.getElementById('siswa-nis').value = data.nis;
                     document.getElementById('siswa-nama').value = data.nama;
                     document.getElementById('siswa-jk').value = data.jk;
                     document.getElementById('siswa-kelas').value = data.kelas;
                     document.getElementById('modal-siswa-title').innerText = "Modifikasi Data Siswa";
-                };
+                }
             }
             document.getElementById('modal-siswa').style.display = "flex";
         }
 
-        function closeModal(id) { document.getElementById(id).style.display = "none"; }
-
-        function saveSiswa(e) {
+        async function saveSiswa(e) {
             e.preventDefault();
             const id = document.getElementById('siswa-id').value;
             const obj = {
@@ -842,31 +816,30 @@
                 kelas: document.getElementById('siswa-kelas').value
             };
 
-            const tx = db.transaction(['siswa'], 'readwrite');
-            const store = tx.objectStore('siswa');
-            
-            if(id) {
-                obj.id = parseInt(id);
-                store.put(obj);
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            submitBtn.disabled = true;
+
+            if (id) {
+                await supabase.from('siswa').update(obj).eq('id', id);
             } else {
-                store.add(obj);
+                await supabase.from('siswa').insert([obj]);
             }
 
-            tx.oncomplete = function() {
-                closeModal('modal-siswa');
-                renderSiswaTable();
-                updateDashboardCounters();
-            };
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            
+            closeModal('modal-siswa');
+            renderSiswaTable();
+            updateDashboardCounters();
         }
 
-        function deleteSiswa(id) {
-            if(confirm("Apakah anda yakin ingin melenyapkan data siswa terpilih?")) {
-                const tx = db.transaction(['siswa'], 'readwrite');
-                tx.objectStore('siswa').delete(id);
-                tx.oncomplete = function() {
-                    renderSiswaTable();
-                    updateDashboardCounters();
-                };
+        async function deleteSiswa(id) {
+            if (confirm("Apakah anda yakin ingin melenyapkan data siswa terpilih?")) {
+                await supabase.from('siswa').delete().eq('id', id);
+                renderSiswaTable();
+                updateDashboardCounters();
             }
         }
 
@@ -874,43 +847,43 @@
             renderSiswaTable(document.getElementById('search-siswa').value);
         }
 
-        // Fitur Pembaca File Excel Otomatis (SheetJS integration)
+        // Fitur Pembaca File Excel Otomatis (SheetJS integration to Supabase)
         function triggerImportExcel() { document.getElementById('excel-file-input').click(); }
         function importExcelData(e) {
             const file = e.target.files[0];
             if(!file) return;
             const reader = new FileReader();
-            reader.onload = function(evt) {
+            reader.onload = async function(evt) {
                 const data = evt.target.result;
                 const workbook = XLSX.read(data, {type: 'binary'});
                 const sheetName = workbook.SheetNames[0];
                 const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
                 
-                const tx = db.transaction(['siswa'], 'readwrite');
-                const store = tx.objectStore('siswa');
-                rows.forEach(r => {
-                    store.add({
-                        nis: String(r.NIS || r.nis || ''),
-                        nama: String(r.Nama || r.nama || ''),
-                        jk: String(r.JK || r.jk || 'Laki-laki'),
-                        kelas: String(r.Kelas || r.kelas || 'Umum')
-                    });
-                });
-                tx.oncomplete = function() {
-                    alert(`Berhasil mengimpor ${rows.length} siswa secara massal!`);
+                const payload = rows.map(r => ({
+                    nis: String(r.NIS || r.nis || ''),
+                    nama: String(r.Nama || r.nama || ''),
+                    jk: String(r.JK || r.jk || 'Laki-laki'),
+                    kelas: String(r.Kelas || r.kelas || 'Umum')
+                }));
+
+                const { error } = await supabase.from('siswa').insert(payload);
+                
+                if(error) {
+                    alert("Gagal mengimpor data: " + error.message);
+                } else {
+                    alert(`Berhasil mengimpor ${payload.length} siswa secara massal ke Supabase!`);
                     renderSiswaTable();
                     updateDashboardCounters();
-                };
+                }
             };
             reader.readAsBinaryString(file);
         }
 
-        function updateDashboardCounters() {
-            if(!db) return;
-            const tx = db.transaction(['siswa'], 'readonly');
-            tx.objectStore('siswa').count().onsuccess = function(e) {
-                document.getElementById('dash-total-siswa').innerText = e.target.result;
-            };
+        async function updateDashboardCounters() {
+            const { count, error } = await supabase.from('siswa').select('*', { count: 'exact', head: true });
+            if (!error) {
+                document.getElementById('dash-total-siswa').innerText = count;
+            }
         }
 
         // ==========================================
@@ -923,20 +896,15 @@
                 return;
             }
 
-            // Lock & Proteksi Layar Penuh
             const docEl = document.documentElement;
             if(docEl.requestFullscreen) docEl.requestFullscreen();
 
             isExamRunning = true;
-            jawabanSiswa = CryptEngine.get('sang21_draft_ans') || {};
+            jawabanSiswa = CryptEngine.decrypt(localStorage.getItem('sang21_draft_ans')) || {};
             
-            // Tampilkan Screen Ujian Murni
             document.getElementById('exam-interface').style.display = "flex";
-            
-            // Nyalakan Pencegah Interupsi / Refresh / Tutup Tab
             window.addEventListener('beforeunload', antiRefreshShield);
 
-            // Jalankan Pewaktu Mundur Otomatis (Contoh: 15 Menit)
             let sisaWaktu = 15 * 60; 
             examInterval = setInterval(() => {
                 sisaWaktu--;
@@ -985,7 +953,6 @@
             currentQuestionIndex = index;
             const soal = bankSoalAktif[index];
             
-            // Atur Label Navigasi Aktif
             document.querySelectorAll('.nav-grid .nav-box').forEach(b => b.classList.remove('active'));
             const activeBox = document.getElementById(`nav-box-${index}`);
             if(activeBox) activeBox.classList.add('active');
@@ -1019,7 +986,6 @@
                 optContainer.appendChild(input);
             }
 
-            // Memicu Akselerasi Render Ulang Simbol Matematika LaTeX MathJax
             if(window.MathJax && MathJax.typeset) {
                 MathJax.typeset();
             }
@@ -1027,8 +993,7 @@
 
         function saveAnswer(soalId, nilai) {
             jawabanSiswa[soalId] = nilai;
-            // Enkripsi Autosave Lokal Keamanan Tinggi
-            CryptEngine.encrypt(jawabanSiswa);
+            localStorage.setItem('sang21_draft_ans', CryptEngine.encrypt(jawabanSiswa));
             
             const idx = bankSoalAktif.findIndex(s => s.id === soalId);
             const box = document.getElementById(`nav-box-${idx}`);
@@ -1056,20 +1021,19 @@
             
             if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
 
-            // Perhitungan Algoritma Evaluasi Otomatis
             let totalBenar = 0;
             bankSoalAktif.forEach(s => {
                 const jawab = jawabanSiswa[s.id] || "";
                 if(s.jenis === "pilihan_ganda" || s.jenis === "benar_salah") {
                     if(jawab === s.kunci) totalBenar++;
                 } else if(s.jenis === "isian_singkat") {
-                    // Pencocokan kata presisi & Toleransi Karakter Huruf Kapital Besar Kecil
                     if(jawab.trim().toLowerCase() === s.kunci.trim().toLowerCase()) totalBenar++;
                 }
             });
 
             const kalkulasiNilai = Math.round((totalBenar / bankSoalAktif.length) * 100);
             localStorage.setItem('last_score_result', kalkulasiNilai);
+            localStorage.removeItem('sang21_draft_ans'); // Hapus draft ujian yang sudah di-submit
 
             document.getElementById('exam-interface').style.display = "none";
             alert(`Ujian Selesai! Nilai Evaluasi Otomatis Anda: ${kalkulasiNilai}`);
@@ -1089,7 +1053,6 @@
             
             const lastScore = parseInt(localStorage.getItem('last_score_result')) || 85;
 
-            // 1. Grafik Batang Bar Di Beranda Dashboard
             const ctx1 = document.getElementById('dashboardChart');
             if(ctx1) {
                 if(chart1) chart1.destroy();
@@ -1114,7 +1077,6 @@
                 });
             }
 
-            // 2. Grafik Donat Distribusi Ketuntasan
             const ctx2 = document.getElementById('dashboardPieChart');
             if(ctx2) {
                 if(chart2) chart2.destroy();
@@ -1134,7 +1096,6 @@
                 });
             }
 
-            // 3. Analisis Distribusi Butir Tingkat Kesukaran Soal
             const ctx3 = document.getElementById('analysisChart');
             if(ctx3) {
                 if(chart3) chart3.destroy();
@@ -1161,12 +1122,13 @@
 
         // Inisialisasi Seluruh Sistem Kesiapan Dokumen DOM
         document.addEventListener("DOMContentLoaded", () => {
-            initIndexedDB();
-            
             // Muat Preferensi Gaya Gelap Terakhir Jika Ada
             if(localStorage.getItem('sang21_theme') === 'dark') {
                 document.body.classList.add('dark-mode');
             }
+            
+            // Perbarui Data dari Supabase
+            updateDashboardCounters();
             
             // Set Default Menu Utama Saat Aplikasi Pertama Dibuka
             navigate('dashboard');
