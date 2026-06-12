@@ -674,12 +674,11 @@
         };
 
         // ==========================================
-        // INISIALISASI SUPABASE CLIENT
+        // INISIALISASI SUPABASE CLIENT (DIRENAMED AGAR TIDAK TABRAKAN)
         // ==========================================
-        // PENTING: Ganti dengan URL dan Key dari project Supabase Anda!
         const supabaseUrl = 'https://wylkasidfbfhowozcuce.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bGthc2lkZmJmaG93b3pjdWNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTc2ODAsImV4cCI6MjA5NTE3MzY4MH0.JGkdTtl3Nh1LcDeR_dzC1lMiA_IslkQQ3QJFtu3u07A';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         // ==========================================
         // DUMMY SEED DATA BANK SOAL (BERAGAM JENIS)
@@ -751,7 +750,7 @@
             const tbody = document.getElementById('siswa-table-body');
             tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Memuat data dari server...</td></tr>";
 
-            let query = supabase.from('siswa').select('*').order('nama', { ascending: true });
+            let query = supabaseClient.from('siswa').select('*').order('nama', { ascending: true });
             
             if (filterText) {
                 query = query.or(`nama.ilike.%${filterText}%,nis.ilike.%${filterText}%`);
@@ -793,7 +792,7 @@
             document.getElementById('modal-siswa-title').innerText = "Tambah Siswa Baru";
 
             if (id) {
-                const { data, error } = await supabase.from('siswa').select('*').eq('id', id).single();
+                const { data, error } = await supabaseClient.from('siswa').select('*').eq('id', id).single();
                 if (!error && data) {
                     document.getElementById('siswa-id').value = data.id;
                     document.getElementById('siswa-nis').value = data.nis;
@@ -822,9 +821,9 @@
             submitBtn.disabled = true;
 
             if (id) {
-                await supabase.from('siswa').update(obj).eq('id', id);
+                await supabaseClient.from('siswa').update(obj).eq('id', id);
             } else {
-                await supabase.from('siswa').insert([obj]);
+                await supabaseClient.from('siswa').insert([obj]);
             }
 
             submitBtn.innerHTML = originalText;
@@ -837,7 +836,7 @@
 
         async function deleteSiswa(id) {
             if (confirm("Apakah anda yakin ingin melenyapkan data siswa terpilih?")) {
-                await supabase.from('siswa').delete().eq('id', id);
+                await supabaseClient.from('siswa').delete().eq('id', id);
                 renderSiswaTable();
                 updateDashboardCounters();
             }
@@ -866,7 +865,7 @@
                     kelas: String(r.Kelas || r.kelas || 'Umum')
                 }));
 
-                const { error } = await supabase.from('siswa').insert(payload);
+                const { error } = await supabaseClient.from('siswa').insert(payload);
                 
                 if(error) {
                     alert("Gagal mengimpor data: " + error.message);
@@ -880,7 +879,7 @@
         }
 
         async function updateDashboardCounters() {
-            const { count, error } = await supabase.from('siswa').select('*', { count: 'exact', head: true });
+            const { count, error } = await supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
             if (!error) {
                 document.getElementById('dash-total-siswa').innerText = count;
             }
@@ -897,7 +896,7 @@
             }
 
             const docEl = document.documentElement;
-            if(docEl.requestFullscreen) docEl.requestFullscreen();
+            if(docEl.requestFullscreen) docEl.requestFullscreen().catch(()=>{});
 
             isExamRunning = true;
             jawabanSiswa = CryptEngine.decrypt(localStorage.getItem('sang21_draft_ans')) || {};
