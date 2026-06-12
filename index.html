@@ -156,14 +156,16 @@
                     <div style="display: flex; gap: 10px;">
                         <button class="btn btn-primary" onclick="showSiswaModal()"><i class="fas fa-plus"></i> Tambah Siswa</button>
                         <button class="btn btn-success" onclick="document.getElementById('excel-file-input').click()"><i class="fas fa-file-excel"></i> Import Excel</button>
-                        <input type="file" id="excel-file-input" accept=".xlsx" style="display:none;" onchange="importExcelData(event)">
+                        <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
                     </div>
                     <input type="text" id="search-siswa" class="form-control" style="width: 250px; margin:0;" placeholder="Cari NIS/Nama..." onkeyup="searchSiswa()">
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
-                        <thead><tr><th>NIS</th><th>Nama Lengkap</th><th>Jenis Kelamin</th><th>Kelas</th><th>Aksi</th></tr></thead>
-                        <tbody id="siswa-table-body"></tbody>
+                        <thead><tr><th>NIS</th><th>Nama Lengkap</th><th>Jenis Kelamin</th><th>Kelas</th><th style="width: 80px;">Aksi</th></tr></thead>
+                        <tbody id="siswa-table-body">
+                            <tr><td colspan="5" style="text-align:center;">Mengunduh data siswa...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </section>
@@ -206,11 +208,10 @@
         <div class="modal-content">
             <div class="modal-header"><h3 id="modal-siswa-title">Entri Data Siswa</h3><span class="close" onclick="closeModal('modal-siswa')">&times;</span></div>
             <form id="form-siswa" onsubmit="saveSiswa(event)">
-                <input type="hidden" id="siswa-id">
                 <input type="text" id="siswa-nis" class="form-control" required placeholder="NIS (Contoh: 1011)">
                 <input type="text" id="siswa-nama" class="form-control" required placeholder="Nama Lengkap">
                 <select id="siswa-jk" class="form-control"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select>
-                <input type="text" id="siswa-kelas" class="form-control" required placeholder="Kelas (Contoh: 6A)">
+                <input type="text" id="siswa-kelas" class="form-control" required placeholder="Kelas (Contoh: 4A)">
                 <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Simpan Data</button>
             </form>
         </div>
@@ -220,7 +221,6 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header"><h3 id="modal-soal-title">Pembuatan Soal</h3><span class="close" onclick="closeModal('modal-soal')">&times;</span></div>
             <form id="form-soal" onsubmit="saveSoal(event)">
-                <input type="hidden" id="soal-id">
                 <select id="soal-jenis" class="form-control" required onchange="handleJenisSoalChange()">
                     <option value="pilihan_ganda">Pilihan Ganda</option>
                     <option value="benar_salah">Benar / Salah</option>
@@ -246,7 +246,7 @@
 
     <div id="exam-interface" style="display: none;">
         <div class="exam-header">
-            <div><h3 style="font-size: 18px;">UJIAN SEKOLAH - SANG21</h3><p style="font-size: 13px; color: var(--text-muted);">Siswa: Anonim</p></div>
+            <div><h3 style="font-size: 18px;">UJIAN SEKOLAH - SANG21</h3><p style="font-size: 13px; color: var(--text-muted);">Siswa: Uji Coba</p></div>
             <div class="exam-timer"><i class="fas fa-clock"></i> <span id="timer-display">00:00:00</span></div>
         </div>
         <div class="exam-body">
@@ -268,24 +268,16 @@
 
     <script>
         // ==========================================
-        // PERBAIKAN 1: ENKRIPSI AES (CRYPTO-JS) SUPER AMAN
+        // ENGINE ENKRIPSI AMAN (AES-256)
         // ==========================================
         const SECRET_KEY = "SANG21_SD_SUPER_SECRET_2024";
         const CryptEngine = {
-            encrypt: (data) => {
-                try { return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString(); } catch(e) { return ""; }
-            },
-            decrypt: (str) => {
-                if(!str) return null;
-                try {
-                    const bytes = CryptoJS.AES.decrypt(str, SECRET_KEY);
-                    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-                } catch(e) { return null; }
-            }
+            encrypt: (data) => { try { return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString(); } catch(e) { return ""; } },
+            decrypt: (str) => { if(!str) return null; try { const bytes = CryptoJS.AES.decrypt(str, SECRET_KEY); return JSON.parse(bytes.toString(CryptoJS.enc.Utf8)); } catch(e) { return null; } }
         };
 
         // ==========================================
-        // KONEKSI SUPABASE ASLI ANDA
+        // KREDENSIAL SUPABASE KONEKSI LIVE
         // ==========================================
         const supabaseUrl = 'https://wylkasidfbfhowozcuce.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bGthc2lkZmJmaG93b3pjdWNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTc2ODAsImV4cCI6MjA5NTE3MzY4MH0.JGkdTtl3Nh1LcDeR_dzC1lMiA_IslkQQ3QJFtu3u07A';
@@ -313,36 +305,116 @@
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('sang21_theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); loadChartsEngine(); }
         function closeModal(id) { document.getElementById(id).style.display = "none"; }
 
-        // --- CRUD DATA SISWA ---
+        // ==========================================
+        // MANAJEMEN DATA SISWA (PERBAIKAN TOTAL)
+        // ==========================================
         async function renderSiswaTable(filterText = "") {
             const tbody = document.getElementById('siswa-table-body');
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Memuat...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Mengambil berkas siswa dari Supabase...</td></tr>";
+            
             let query = supabaseClient.from('siswa').select('*').order('nama', { ascending: true });
             if (filterText) query = query.or(`nama.ilike.%${filterText}%,nis.ilike.%${filterText}%`);
             
             const { data, error } = await query;
-            if (error) { tbody.innerHTML = `<tr><td colspan='5'>Error: ${error.message}</td></tr>`; return; }
+            if (error) { 
+                tbody.innerHTML = `<tr><td colspan='5' style='color:red; font-weight:bold; text-align:center;'>Gagal memuat: ${error.message}. <br>Pastikan RLS pada tabel 'siswa' di Supabase dimatikan!</td></tr>`; 
+                return; 
+            }
+            
             tbody.innerHTML = "";
-            if (data.length === 0) { tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Data kosong.</td></tr>"; return; }
+            if (data.length === 0) { tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Belum ada data siswa terdaftar.</td></tr>"; return; }
+            
             data.forEach(v => {
-                tbody.innerHTML += `<tr><td><b>${v.nis}</b></td><td>${v.nama}</td><td>${v.jk}</td><td>${v.kelas}</td>
-                <td><button class="btn btn-danger" onclick="deleteSiswa('${v.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td><b>${v.nis}</b></td>
+                    <td>${v.nama}</td>
+                    <td>${v.jk}</td>
+                    <td><span style="background:#e0e0e0; color:#333; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:600;">${v.kelas}</span></td>
+                    <td><button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteSiswa('${v.id}')"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
             });
         }
+
         function showSiswaModal() { document.getElementById('form-siswa').reset(); document.getElementById('modal-siswa').style.display = "flex"; }
+        
         async function saveSiswa(e) {
             e.preventDefault();
-            const obj = { nis: document.getElementById('siswa-nis').value, nama: document.getElementById('siswa-nama').value, jk: document.getElementById('siswa-jk').value, kelas: document.getElementById('siswa-kelas').value };
-            await supabaseClient.from('siswa').insert([obj]); closeModal('modal-siswa'); renderSiswaTable();
+            const obj = { 
+                nis: document.getElementById('siswa-nis').value.trim(), 
+                nama: document.getElementById('siswa-nama').value.trim(), 
+                jk: document.getElementById('siswa-jk').value, 
+                kelas: document.getElementById('siswa-kelas').value.trim() 
+            };
+            
+            const { error } = await supabaseClient.from('siswa').insert([obj]);
+            if(error) {
+                alert("Gagal menambahkan siswa: " + error.message);
+            } else {
+                closeModal('modal-siswa'); 
+                renderSiswaTable();
+                updateDashboardCounters();
+            }
         }
-        async function deleteSiswa(id) { if(confirm("Hapus siswa ini?")) { await supabaseClient.from('siswa').delete().eq('id', id); renderSiswaTable(); } }
+
+        async function deleteSiswa(id) { 
+            if(confirm("Apakah Anda yakin ingin menghapus data siswa ini?")) { 
+                const { error } = await supabaseClient.from('siswa').delete().eq('id', id); 
+                if(error) alert("Gagal menghapus: " + error.message);
+                renderSiswaTable(); 
+                updateDashboardCounters();
+            } 
+        }
+
         function searchSiswa() { renderSiswaTable(document.getElementById('search-siswa').value); }
 
-        // --- CRUD BANK SOAL (DENGAN PERBAIKAN HOTS & DETEKSI RLS) ---
+        // BERFUNGSI: Sistem Import Excel Otomatis Langsung Kirim Ke Supabase
+        async function importExcelData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+                    if(json.length === 0) { alert("File Excel kosong!"); return; }
+
+                    // Standardisasi pemetaan kolom Excel agar tidak typo sensitif
+                    const mappedData = json.map(row => {
+                        return {
+                            nis: String(row.nis || row.NIS || row.Nis || row['No Induk'] || ""),
+                            nama: String(row.nama || row.Nama || row.NAMA || row['Nama Lengkap'] || ""),
+                            jk: String(row.jk || row.JK || row['Jenis Kelamin'] || "Laki-laki"),
+                            kelas: String(row.kelas || row.Kelas || row.KELAS || "")
+                        };
+                    });
+
+                    const { error } = await supabaseClient.from('siswa').insert(mappedData);
+                    if(error) {
+                        alert("Gagal menyimpan data Excel ke Supabase: " + error.message);
+                    } else {
+                        alert(`Sukses mengimpor ${mappedData.length} data siswa baru!`);
+                        renderSiswaTable();
+                        updateDashboardCounters();
+                    }
+                } catch(err) {
+                    alert("Gagal membaca struktur berkas Excel: " + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = ""; // Reset input file
+        }
+
+
+        // ==========================================
+        // MANAJEMEN BANK SOAL
+        // ==========================================
         function handleJenisSoalChange() {
             const jenis = document.getElementById('soal-jenis').value;
             const pgBox = document.getElementById('box-opsi-pg');
-            // Opsi PG hanya tampil jika tipe soal adalah Pilihan Ganda
             if(jenis === 'pilihan_ganda') { pgBox.style.display = 'block'; document.querySelectorAll('.pg-field').forEach(el => el.required = true); } 
             else { pgBox.style.display = 'none'; document.querySelectorAll('.pg-field').forEach(el => el.required = false); }
         }
@@ -352,19 +424,13 @@
             tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Mengunduh data soal...</td></tr>";
 
             const { data, error } = await supabaseClient.from('bank_soal').select('*').order('id', { ascending: true });
-            
-            // PERINGATAN RLS: Jika tabel terlihat kosong tapi di database ada (seperti kasus di gambar Anda)
             if (error) {
-                console.error(error);
-                tbody.innerHTML = `<tr><td colspan='4' style='text-align:center; color:red; font-weight:bold;'>
-                    Akses Ditolak!<br>Pesan sistem: ${error.message}<br><br>
-                    TIPS PERBAIKAN: Masuk ke Supabase -> Table Editor -> bank_soal -> Matikan (Disable) "RLS".
-                </td></tr>`;
+                tbody.innerHTML = `<tr><td colspan='4' style='text-align:center; color:red; font-weight:bold;'>Gagal memuat bank soal: ${error.message}</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = "";
-            if (data.length === 0) { tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Belum ada soal. Jika Anda merasa sudah buat, matikan fitur RLS di Supabase.</td></tr>"; return; }
+            if (data.length === 0) { tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Belum ada koleksi soal di Supabase.</td></tr>"; return; }
 
             data.forEach(s => {
                 const tr = document.createElement('tr');
@@ -391,20 +457,23 @@
             } else if(jenis === 'benar_salah') { opsiData = { A: "Benar", B: "Salah" }; }
 
             const payload = { jenis: jenis, soal: document.getElementById('soal-teks').value, opsi: opsiData, kunci: document.getElementById('soal-kunci').value };
-            await supabaseClient.from('bank_soal').insert([payload]);
+            const { error } = await supabaseClient.from('bank_soal').insert([payload]);
+            if(error) alert("Gagal simpan soal: " + error.message);
             closeModal('modal-soal'); renderSoalTable();
         }
 
         async function deleteSoal(id) { if(confirm("Hapus soal dari Supabase?")) { await supabaseClient.from('bank_soal').delete().eq('id', id); renderSoalTable(); } }
 
-        // --- ENGINE UJIAN ---
+
+        // ==========================================
+        // ENGINE ANTARMUKA UJIAN SISWA
+        // ==========================================
         async function startExam() {
             const token = document.getElementById('exam-token').value.trim().toUpperCase();
             if(token !== "SANG21") { alert("Token Master Salah!"); return; }
 
-            // Unduh soal riil dari Supabase
             const { data, error } = await supabaseClient.from('bank_soal').select('*').order('id', { ascending: true });
-            if(error || !data || data.length === 0) { alert("Soal kosong atau akses RLS terblokir!"); return; }
+            if(error || !data || data.length === 0) { alert("Lembar soal di Supabase kosong!"); return; }
             bankSoalAktif = data;
 
             document.documentElement.requestFullscreen().catch(()=>{});
@@ -449,7 +518,6 @@
             const optContainer = document.getElementById('current-options-container');
             optContainer.innerHTML = "";
 
-            // PERBAIKAN: Layout Khusus untuk Soal HOTS
             if(soal.jenis === "pilihan_ganda" || soal.jenis === "benar_salah") {
                 for(let key in soal.opsi) {
                     const checked = (jawabanSiswa[soal.id] === key) ? "checked" : "";
@@ -489,7 +557,6 @@
                 } else if(s.jenis === "isian_singkat") {
                     if(jawab.trim().toLowerCase() === s.kunci.trim().toLowerCase()) totalBenar++;
                 } else if(s.jenis === "uraian_hots") {
-                    // Penilaian otomatis sederhana untuk HOTS (jika ketikan > 15 karakter dianggap mencoba)
                     if(jawab.trim().length >= 15) totalBenar++; 
                 }
             });
@@ -499,16 +566,20 @@
             localStorage.removeItem('sang21_draft_ans');
 
             document.getElementById('exam-interface').style.display = "none";
-            alert(`Ujian Selesai! Nilai Sementara: ${nilai}`);
+            alert(`Ujian Selesai! Nilai Sementara Uji Coba: ${nilai}`);
             navigate('analisis');
         }
 
-        // --- DASHBOARD & GRAFIK ---
+
+        // ==========================================
+        // INDIKATOR COUNTER DASHBOARD & GRAFIK
+        // ==========================================
         async function updateDashboardCounters() {
-            const { count: c1 } = await supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
-            if (c1 !== null) document.getElementById('dash-total-siswa').innerText = c1;
-            const { count: c2 } = await supabaseClient.from('bank_soal').select('*', { count: 'exact', head: true });
-            if (c2 !== null) document.getElementById('dash-total-soal').innerText = c2;
+            const { count: c1, error: e1 } = await supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
+            if (!e1 && c1 !== null) document.getElementById('dash-total-siswa').innerText = c1;
+            
+            const { count: c2, error: e2 } = await supabaseClient.from('bank_soal').select('*', { count: 'exact', head: true });
+            if (!e2 && c2 !== null) document.getElementById('dash-total-soal').innerText = c2;
         }
 
         let chart1, chart2, chart3;
@@ -529,6 +600,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             if(localStorage.getItem('sang21_theme') === 'dark') document.body.classList.add('dark-mode');
+            updateDashboardCounters();
             navigate('dashboard');
         });
     </script>
