@@ -58,7 +58,9 @@
         .topbar { height: 60px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
         .toggle-btn, .btn-icon { font-size: 20px; cursor: pointer; color: var(--text-color); background: none; border: none; padding: 5px; }
         .topbar-right { display: flex; align-items: center; gap: 20px; }
-        .user-profile { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .user-profile { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; border-radius: 4px; transition: var(--transition); }
+        .user-profile:hover { background: rgba(0,0,0,0.05); }
+        body.dark-mode .user-profile:hover { background: rgba(255,255,255,0.05); }
 
         .content-wrapper { flex: 1; padding: 25px; overflow-y: auto; }
         .page-section { display: none; animation: slideUp 0.3s ease-in-out; }
@@ -171,7 +173,9 @@
             <div class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
             <div class="topbar-right">
                 <button onclick="toggleDarkMode()" class="btn-icon"><i class="fas fa-moon"></i></button>
-                <div class="user-profile"><i class="fas fa-user-circle fa-lg"></i> Guru Kelas</div>
+                <div class="user-profile" onclick="alert('Menu Profil Guru Kelas: Fitur autentikasi login/logout dapat dikembangkan di sini.')">
+                    <i class="fas fa-user-circle fa-lg"></i> Menu Guru Kelas
+                </div>
             </div>
         </header>
 
@@ -182,7 +186,7 @@
 
                 <div class="vision-card">
                     <h3><i class="fas fa-bullseye"></i> Visi Sekolah</h3>
-                    <p>"Terwujudnya peserta didik yang unggul dalam literasi dan numerasi, berkarakter mulia, sehat, berbudaya lingkungan, serta adaptif terhadap perkembangan ilmu pengetahuan dan teknologi."</p>
+                    <p>"Terwujudnya peserta didik yang cerdas, berkarakter mulia, berwawasan global, dan menguasai teknologi informasi dengan berlandaskan nilai-nilai Pancasila."</p>
                 </div>
 
                 <div class="stats-grid">
@@ -243,6 +247,9 @@
 
             <section id="analisis" class="page-section">
                 <h2>Analisis Butir & Ketuntasan</h2>
+                <div class="action-bar" style="margin-top: 15px;">
+                    <button class="btn btn-success" onclick="cetakHasilUjian()"><i class="fas fa-print"></i> Cetak Hasil Ujian Terakhir</button>
+                </div>
                 <div class="chart-box" style="margin-top: 20px; max-width: 800px; height: 400px;"><canvas id="analysisChart"></canvas></div>
             </section>
 
@@ -351,7 +358,7 @@
         function closeModal(id) { document.getElementById(id).style.display = "none"; }
 
         // ==========================================
-        // MANAJEMEN DATA SISWA (PERBAIKAN TOTAL)
+        // MANAJEMEN DATA SISWA
         // ==========================================
         async function renderSiswaTable(filterText = "") {
             const tbody = document.getElementById('siswa-table-body');
@@ -412,7 +419,6 @@
 
         function searchSiswa() { renderSiswaTable(document.getElementById('search-siswa').value); }
 
-        // BERFUNGSI: Sistem Import Excel Otomatis Langsung Kirim Ke Supabase
         async function importExcelData(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -427,7 +433,6 @@
 
                     if(json.length === 0) { alert("File Excel kosong!"); return; }
 
-                    // Standardisasi pemetaan kolom Excel agar tidak typo sensitif
                     const mappedData = json.map(row => {
                         return {
                             nis: String(row.nis || row.NIS || row.Nis || row['No Induk'] || ""),
@@ -450,7 +455,7 @@
                 }
             };
             reader.readAsArrayBuffer(file);
-            event.target.value = ""; // Reset input file
+            event.target.value = "";
         }
 
 
@@ -528,7 +533,7 @@
             document.getElementById('exam-interface').style.display = "flex";
             window.addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = ""; });
 
-            let sisaWaktu = 30 * 60; // 30 Menit
+            let sisaWaktu = 30 * 60;
             examInterval = setInterval(() => {
                 sisaWaktu--;
                 document.getElementById('timer-display').innerText = new Date(sisaWaktu * 1000).toISOString().substr(11, 8);
@@ -641,6 +646,64 @@
             
             const c3 = document.getElementById('analysisChart');
             if(c3) { if(chart3) chart3.destroy(); chart3 = new Chart(c3, { type: 'line', data: { labels: ['Soal 1', 'Soal 2', 'Soal HOTS'], datasets: [{ label: 'Benar', data: [18, 24, 12], borderColor: '#28a745' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: colorLabel } } }, scales: { x: { ticks: { color: colorLabel } }, y: { ticks: { color: colorLabel } } } } }); }
+        }
+
+        // ==========================================
+        // FITUR CETAK HASIL UJIAN
+        // ==========================================
+        function cetakHasilUjian() {
+            const lastScore = localStorage.getItem('last_score_result');
+            
+            if (lastScore === null) {
+                alert("Belum ada data ujian yang diselesaikan untuk dicetak.");
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            const tanggalCetak = new Date().toLocaleString('id-ID');
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Cetak Hasil Ujian - SANG21</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; text-align: center; padding: 40px; color: #333; }
+                        .header { margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+                        .header h1 { margin: 0; font-size: 24px; color: #0056b3; }
+                        .header p { margin: 5px 0 0 0; font-size: 14px; color: #666; }
+                        .score-container { border: 2px dashed #0056b3; display: inline-block; padding: 30px 60px; border-radius: 15px; margin-top: 20px; background-color: #f4f6f9; }
+                        .score-container h3 { margin: 0 0 15px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+                        .score-value { font-size: 60px; font-weight: bold; color: #28a745; line-height: 1; }
+                        .footer { margin-top: 50px; font-size: 12px; color: #777; font-style: italic; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>BUKTI HASIL UJIAN</h1>
+                        <p>Sistem Asesmen SANG21 - Tingkat Sekolah Dasar</p>
+                    </div>
+                    
+                    <p style="font-size: 16px;">Nama Siswa: <b>Uji Coba</b></p>
+                    
+                    <div class="score-container">
+                        <h3>Nilai Akhir</h3>
+                        <div class="score-value">${lastScore}</div>
+                    </div>
+
+                    <div class="footer">
+                        Dokumen ini dicetak secara otomatis oleh sistem pada: ${tanggalCetak}
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         document.addEventListener("DOMContentLoaded", () => {
