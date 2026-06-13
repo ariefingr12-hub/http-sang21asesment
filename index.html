@@ -173,8 +173,8 @@
             <div class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
             <div class="topbar-right">
                 <button onclick="toggleDarkMode()" class="btn-icon"><i class="fas fa-moon"></i></button>
-                <div class="user-profile" onclick="alert('Menu Profil Guru Kelas: Fitur autentikasi login/logout dapat dikembangkan di sini.')">
-                    <i class="fas fa-user-circle fa-lg"></i> Menu Guru Kelas
+                <div class="user-profile" id="auth-btn" onclick="toggleAuth()">
+                    <i class="fas fa-user-circle fa-lg"></i> <span id="auth-text">Masuk (Login Guru)</span>
                 </div>
             </div>
         </header>
@@ -255,6 +255,21 @@
 
         </div>
     </main>
+
+    <div class="modal" id="modal-login">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Login Administrator / Guru</h3>
+                <span class="close" onclick="closeModal('modal-login')">&times;</span>
+            </div>
+            <form id="form-login" onsubmit="handleAuth(event)">
+                <input type="email" id="login-email" class="form-control" required placeholder="Email (contoh: guru@sekolah.id)">
+                <input type="password" id="login-password" class="form-control" required placeholder="Kata Sandi">
+                <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-sign-in-alt"></i> Masuk Sistem</button>
+                <div id="login-error" style="color: var(--danger); margin-top: 15px; text-align: center; font-size: 13px; font-weight: bold;"></div>
+            </form>
+        </div>
+    </div>
 
     <div class="modal" id="modal-siswa">
         <div class="modal-content">
@@ -341,6 +356,80 @@
         let examInterval;
         let isExamRunning = false;
 
+        // ==========================================
+        // SISTEM AUTENTIKASI & HAK AKSES (RBAC)
+        // ==========================================
+        let currentUser = null;
+
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            updateAuthState(session?.user || null);
+            
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
+                updateAuthState(session?.user || null);
+            });
+        }
+
+        function updateAuthState(user) {
+            currentUser = user;
+            const authText = document.getElementById('auth-text');
+            
+            if (user) {
+                authText.innerText = `Logout (${user.email.split('@')[0]})`;
+                enforceRBAC(true);
+            } else {
+                authText.innerText = "Masuk (Login Guru)";
+                enforceRBAC(false);
+            }
+        }
+
+        function enforceRBAC(isTeacher) {
+            document.getElementById('nav-siswa').style.display = isTeacher ? 'flex' : 'none';
+            document.getElementById('nav-bank-soal').style.display = isTeacher ? 'flex' : 'none';
+            document.getElementById('nav-analisis').style.display = isTeacher ? 'flex' : 'none';
+            
+            const activeSection = document.querySelector('.page-section.active');
+            if (!isTeacher && activeSection && ['siswa', 'bank-soal', 'analisis'].includes(activeSection.id)) {
+                navigate('ujian');
+            }
+        }
+
+        function toggleAuth() {
+            if (currentUser) {
+                if(confirm("Apakah Anda yakin ingin keluar (Logout)?")) {
+                    supabaseClient.auth.signOut();
+                    alert("Berhasil Logout. Kembali ke mode Siswa.");
+                    navigate('ujian');
+                }
+            } else {
+                document.getElementById('modal-login').style.display = 'flex';
+                document.getElementById('login-error').innerText = "";
+            }
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                document.getElementById('login-error').innerText = "Gagal masuk: Email atau Sandi salah!";
+            } else {
+                closeModal('modal-login');
+                document.getElementById('form-login').reset();
+                alert("Berhasil masuk sebagai Guru!");
+                navigate('dashboard');
+            }
+        }
+
+        // ==========================================
+        // NAVIGASI & UTILITIES
+        // ==========================================
         function navigate(sectionId) {
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.nav-links a').forEach(nav => nav.classList.remove('active'));
@@ -348,9 +437,9 @@
             const activeNav = document.getElementById(`nav-${sectionId}`);
             if(activeNav) activeNav.classList.add('active');
 
-            if(sectionId === 'siswa') renderSiswaTable();
-            if(sectionId === 'bank-soal') renderSoalTable();
-            if(sectionId === 'dashboard' || sectionId === 'analisis') { updateDashboardCounters(); loadChartsEngine(); }
+            if(sectionId === 'siswa' && currentUser) renderSiswaTable();
+            if(sectionId === 'bank-soal' && currentUser) renderSoalTable();
+            if(sectionId === 'dashboard' || (sectionId === 'analisis' && currentUser)) { updateDashboardCounters(); loadChartsEngine(); }
         }
 
         function toggleSidebar() { const sb = document.getElementById('sidebar'); sb.style.display = (sb.style.display === 'none') ? 'flex' : 'none'; }
@@ -617,7 +706,8 @@
 
             document.getElementById('exam-interface').style.display = "none";
             alert(`Ujian Selesai! Nilai Sementara Uji Coba: ${nilai}`);
-            navigate('analisis');
+            // Siswa diarahkan ke dashboard setelah ujian, bukan halaman analisis guru.
+            navigate('dashboard'); 
         }
 
 
@@ -706,8 +796,12 @@
             printWindow.document.close();
         }
 
+        // ==========================================
+        // INIT START
+        // ==========================================
         document.addEventListener("DOMContentLoaded", () => {
             if(localStorage.getItem('sang21_theme') === 'dark') document.body.classList.add('dark-mode');
+            checkSession(); // Memeriksa status login saat web dimuat
             updateDashboardCounters();
             navigate('dashboard');
         });
