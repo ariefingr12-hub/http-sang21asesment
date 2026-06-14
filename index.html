@@ -62,24 +62,6 @@
         .user-profile:hover { background: rgba(0,0,0,0.05); }
         body.dark-mode .user-profile:hover { background: rgba(255,255,255,0.05); }
 
-        /* CSS Untuk Dropdown Menu Profil Baru */
-        .profile-wrapper { position: relative; }
-        .profile-dropdown {
-            display: none; position: absolute; top: 110%; right: 0;
-            background: var(--card-bg); border: 1px solid var(--border-color);
-            border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            min-width: 180px; z-index: 1000; overflow: hidden;
-        }
-        .profile-dropdown.active { display: block; animation: slideDown 0.2s ease; }
-        .profile-dropdown a {
-            display: flex; align-items: center; gap: 10px; padding: 12px 16px;
-            color: var(--text-color); text-decoration: none; font-size: 14px;
-            border-bottom: 1px solid var(--border-color); transition: var(--transition);
-        }
-        .profile-dropdown a:hover { background: rgba(0, 86, 179, 0.05); color: var(--primary-color); padding-left: 20px; }
-        .profile-dropdown a:last-child { border-bottom: none; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
         .content-wrapper { flex: 1; padding: 25px; overflow-y: auto; }
         .page-section { display: none; animation: slideUp 0.3s ease-in-out; }
         .page-section.active { display: block; }
@@ -189,23 +171,11 @@
     <main class="main-content">
         <header class="topbar">
             <div class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
-            
             <div class="topbar-right">
                 <button onclick="toggleDarkMode()" class="btn-icon"><i class="fas fa-moon"></i></button>
-                
-                <!-- MENU PROFIL YANG SUDAH BERFUNGSI -->
-                <div class="profile-wrapper">
-                    <div class="user-profile" onclick="toggleProfileMenu()">
-                        <i class="fas fa-user-circle fa-lg"></i> <span id="nama-guru">Guru Kelas</span> <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 5px;"></i>
-                    </div>
-                    <div class="profile-dropdown" id="profileDropdown">
-                        <a href="#" onclick="editProfil()"><i class="fas fa-id-badge"></i> Edit Nama Profil</a>
-                        <a href="#" onclick="alert('Menu pengaturan sistem sedang disiapkan.')"><i class="fas fa-cog"></i> Pengaturan</a>
-                        <a href="#" onclick="logoutGuru()" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Keluar (Logout)</a>
-                    </div>
+                <div class="user-profile" onclick="alert('Menu Profil Guru Kelas: Fitur autentikasi login/logout dapat dikembangkan di sini.')">
+                    <i class="fas fa-user-circle fa-lg"></i> Menu Guru Kelas
                 </div>
-                <!-- AKHIR MENU PROFIL -->
-
             </div>
         </header>
 
@@ -256,7 +226,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
-                        <thead><tr><th style="width: 100px;">Tipe</th><th>Pertanyaan / Stimulus Teks</th><th style="width: 120px;">Kunci</th><th style="width: 100px;">Aksi</th></tr></thead>
+                        <thead><tr><th style="width: 100px;">Tipe & Bobot</th><th>Pertanyaan / Stimulus Teks</th><th style="width: 120px;">Kunci</th><th style="width: 80px;">Aksi</th></tr></thead>
                         <tbody id="soal-table-body">
                             <tr><td colspan="4" style="text-align:center;">Mengambil data dari Supabase...</td></tr>
                         </tbody>
@@ -299,19 +269,24 @@
         </div>
     </div>
 
+    <!-- MODAL PEMBUATAN SOAL (Diperbarui dengan Bobot dan Rubrik) -->
     <div class="modal" id="modal-soal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header"><h3 id="modal-soal-title">Pembuatan Soal</h3><span class="close" onclick="closeModal('modal-soal')">&times;</span></div>
             <form id="form-soal" onsubmit="saveSoal(event)">
+                <label style="font-size:13px; font-weight:600;">Jenis Soal:</label>
                 <select id="soal-jenis" class="form-control" required onchange="handleJenisSoalChange()">
                     <option value="pilihan_ganda">Pilihan Ganda</option>
                     <option value="benar_salah">Benar / Salah</option>
                     <option value="isian_singkat">Isian Singkat</option>
                     <option value="uraian_hots">Uraian Panjang / Esai (HOTS)</option>
                 </select>
+                
+                <label style="font-size:13px; font-weight:600;">Pertanyaan / Teks Stimulus:</label>
                 <textarea id="soal-teks" class="form-control" rows="4" required placeholder="Ketik cerita, teks bacaan (stimulus), atau pertanyaan di sini..."></textarea>
                 
                 <div id="box-opsi-pg">
+                    <label style="font-size:13px; font-weight:600;">Pilihan Jawaban (A-D):</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <input type="text" id="opsi-a" class="form-control pg-field" placeholder="Opsi A">
                         <input type="text" id="opsi-b" class="form-control pg-field" placeholder="Opsi B">
@@ -320,8 +295,18 @@
                     </div>
                 </div>
 
-                <input type="text" id="soal-kunci" class="form-control" required placeholder="Kunci Jawaban (Cth: A, Benar, atau Kata Kunci Esai)">
-                <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Simpan Soal ke Supabase</button>
+                <div id="box-uraian-hots" style="display:none; margin-top: 10px;">
+                    <label style="font-size:13px; font-weight:600; color:var(--danger);">Pedoman Penskoran (Rubrik):</label>
+                    <textarea id="soal-rubrik" class="form-control" rows="4" placeholder="Contoh: Skor 10 = Alasan lengkap; Skor 7 = Kurang lengkap; Skor 0 = Kosong"></textarea>
+                </div>
+
+                <label style="font-size:13px; font-weight:600; margin-top: 10px; display:block;">Kunci Jawaban & Bobot Nilai:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="soal-kunci" class="form-control" required placeholder="Kunci Jawaban (Cth: A, Benar, dll)" style="flex: 2;">
+                    <input type="number" id="soal-bobot" class="form-control" required placeholder="Bobot (Cth: 10)" min="1" style="flex: 1;">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;"><i class="fas fa-save"></i> Simpan Soal ke Supabase</button>
             </form>
         </div>
     </div>
@@ -490,13 +475,33 @@
 
 
         // ==========================================
-        // MANAJEMEN BANK SOAL
+        // MANAJEMEN BANK SOAL (Fitur Bobot & Rubrik)
         // ==========================================
         function handleJenisSoalChange() {
             const jenis = document.getElementById('soal-jenis').value;
             const pgBox = document.getElementById('box-opsi-pg');
-            if(jenis === 'pilihan_ganda') { pgBox.style.display = 'block'; document.querySelectorAll('.pg-field').forEach(el => el.required = true); } 
-            else { pgBox.style.display = 'none'; document.querySelectorAll('.pg-field').forEach(el => el.required = false); }
+            const hotsBox = document.getElementById('box-uraian-hots');
+            const bobotInput = document.getElementById('soal-bobot');
+
+            // Reset required
+            document.querySelectorAll('.pg-field').forEach(el => el.required = false);
+
+            if(jenis === 'pilihan_ganda') { 
+                pgBox.style.display = 'block'; 
+                hotsBox.style.display = 'none';
+                document.querySelectorAll('.pg-field').forEach(el => el.required = true); 
+                bobotInput.value = 1;
+            } 
+            else if (jenis === 'uraian_hots') {
+                pgBox.style.display = 'none'; 
+                hotsBox.style.display = 'block';
+                bobotInput.value = 10; // Default bobot HOTS berdasarkan pedoman
+            }
+            else { 
+                pgBox.style.display = 'none'; 
+                hotsBox.style.display = 'none';
+                bobotInput.value = 1;
+            }
         }
 
         async function renderSoalTable() {
@@ -515,28 +520,58 @@
             data.forEach(s => {
                 const tr = document.createElement('tr');
                 const badgeColor = s.jenis === 'uraian_hots' ? 'var(--danger)' : 'var(--primary-color)';
+                const bobotSkor = s.bobot || 1;
+                
+                // Render rubrik jika soal berjenis uraian_hots
+                let rubrikHtml = (s.jenis === 'uraian_hots' && s.rubrik) ? `<div style="margin-top:8px; font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-left:3px solid var(--danger); border-radius:4px;"><b>Pedoman Penskoran:</b><br>${s.rubrik.replace(/\\n/g, '<br>')}</div>` : '';
+
                 tr.innerHTML = `
-                    <td><span class="btn" style="padding:4px 8px; font-size:11px; background-color:${badgeColor}; pointer-events:none;">${s.jenis.replace('_', ' ').toUpperCase()}</span></td>
-                    <td><div style="max-height:60px; overflow-y:auto; font-weight:500;">${s.soal}</div></td>
-                    <td><b style="color:var(--success)">${s.kunci}</b></td>
-                    <td><button class="btn btn-danger" style="padding:5px 10px; font-size:11px;" onclick="deleteSoal('${s.id}')"><i class="fas fa-trash"></i></button></td>
+                    <td style="vertical-align:top;">
+                        <span class="btn" style="padding:4px 8px; font-size:11px; background-color:${badgeColor}; pointer-events:none;">${s.jenis.replace('_', ' ').toUpperCase()}</span>
+                        <div style="margin-top: 5px;"><small style="font-weight:bold; color:var(--text-muted);">Bobot: ${bobotSkor}</small></div>
+                    </td>
+                    <td style="vertical-align:top;">
+                        <div style="font-weight:500;">${s.soal}</div>
+                        ${rubrikHtml}
+                    </td>
+                    <td style="vertical-align:top;"><b style="color:var(--success)">${s.kunci}</b></td>
+                    <td style="vertical-align:top;"><button class="btn btn-danger" style="padding:5px 10px; font-size:11px;" onclick="deleteSoal('${s.id}')"><i class="fas fa-trash"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
             updateDashboardCounters();
         }
 
-        function showSoalModal() { document.getElementById('form-soal').reset(); handleJenisSoalChange(); document.getElementById('modal-soal').style.display = 'flex'; }
+        function showSoalModal() { 
+            document.getElementById('form-soal').reset(); 
+            handleJenisSoalChange(); 
+            document.getElementById('modal-soal').style.display = 'flex'; 
+        }
 
         async function saveSoal(e) {
             e.preventDefault();
             const jenis = document.getElementById('soal-jenis').value;
+            const bobot = parseInt(document.getElementById('soal-bobot').value) || 1;
+            
             let opsiData = {};
+            let rubrikData = "";
+
             if(jenis === 'pilihan_ganda') {
                 opsiData = { A: document.getElementById('opsi-a').value, B: document.getElementById('opsi-b').value, C: document.getElementById('opsi-c').value, D: document.getElementById('opsi-d').value };
-            } else if(jenis === 'benar_salah') { opsiData = { A: "Benar", B: "Salah" }; }
+            } else if(jenis === 'benar_salah') { 
+                opsiData = { A: "Benar", B: "Salah" }; 
+            } else if(jenis === 'uraian_hots') {
+                rubrikData = document.getElementById('soal-rubrik').value;
+            }
 
-            const payload = { jenis: jenis, soal: document.getElementById('soal-teks').value, opsi: opsiData, kunci: document.getElementById('soal-kunci').value };
+            const payload = { 
+                jenis: jenis, 
+                soal: document.getElementById('soal-teks').value, 
+                opsi: opsiData, 
+                kunci: document.getElementById('soal-kunci').value,
+                bobot: bobot,
+                rubrik: rubrikData
+            };
             const { error } = await supabaseClient.from('bank_soal').insert([payload]);
             if(error) alert("Gagal simpan soal: " + error.message);
             closeModal('modal-soal'); renderSoalTable();
@@ -592,7 +627,9 @@
             document.querySelectorAll('.nav-grid .nav-box').forEach(b => b.classList.remove('active'));
             document.getElementById(`nav-box-${index}`).classList.add('active');
 
-            document.getElementById('current-q-label').innerText = `Soal No. ${index + 1} (${soal.jenis.replace('_',' ').toUpperCase()})`;
+            // Menampilkan informasi skor maksimal (bobot) per butir
+            const bobotTampil = soal.bobot || 1;
+            document.getElementById('current-q-label').innerText = `Soal No. ${index + 1} (${soal.jenis.replace('_',' ').toUpperCase()}) - Skor Maks: ${bobotTampil}`;
             document.getElementById('current-q-text').innerText = soal.soal;
 
             const optContainer = document.getElementById('current-options-container');
@@ -629,19 +666,28 @@
             clearInterval(examInterval);
             if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
 
-            let totalBenar = 0;
+            // Perbaikan Kalkulasi Pengskoran berdasarkan Bobot
+            let totalSkor = 0;
+            let skorMaksimal = 0;
+            
             bankSoalAktif.forEach(s => {
+                const bobot = s.bobot || 1;
+                skorMaksimal += bobot; // Akumulasi total skor maksimal
                 const jawab = jawabanSiswa[s.id] || "";
+                
                 if(s.jenis === "pilihan_ganda" || s.jenis === "benar_salah") {
-                    if(jawab === s.kunci) totalBenar++;
+                    if(jawab === s.kunci) totalSkor += bobot;
                 } else if(s.jenis === "isian_singkat") {
-                    if(jawab.trim().toLowerCase() === s.kunci.trim().toLowerCase()) totalBenar++;
+                    if(jawab.trim().toLowerCase() === s.kunci.trim().toLowerCase()) totalSkor += bobot;
                 } else if(s.jenis === "uraian_hots") {
-                    if(jawab.trim().length >= 15) totalBenar++; 
+                    // Penilaian Uraian HOTS otomatis hanya simulasi testing. Aslinya butuh koreksi guru.
+                    if(jawab.trim().length >= 15) totalSkor += bobot; 
                 }
             });
 
-            const nilai = Math.round((totalBenar / bankSoalAktif.length) * 100);
+            // Menghitung persentase dari skor maksimum
+            const nilai = skorMaksimal > 0 ? Math.round((totalSkor / skorMaksimal) * 100) : 0;
+            
             localStorage.setItem('last_score_result', nilai);
             localStorage.removeItem('sang21_draft_ans');
 
@@ -734,46 +780,6 @@
                 </html>
             `);
             printWindow.document.close();
-        }
-
-        // ==========================================
-        // FUNGSI MENU PROFIL GURU BARU
-        // ==========================================
-        function toggleProfileMenu() {
-            document.getElementById('profileDropdown').classList.toggle('active');
-        }
-
-        // Menutup menu jika klik di luar
-        window.onclick = function(event) {
-            if (!event.target.closest('.profile-wrapper')) {
-                const dropdowns = document.getElementsByClassName("profile-dropdown");
-                for (let i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].classList.contains('active')) {
-                        dropdowns[i].classList.remove('active');
-                    }
-                }
-            }
-        }
-
-        function editProfil() {
-            let namaBaru = prompt("Masukkan nama lengkap Anda:", document.getElementById('nama-guru').innerText);
-            if (namaBaru && namaBaru.trim() !== "") {
-                document.getElementById('nama-guru').innerText = namaBaru.trim();
-            }
-            document.getElementById('profileDropdown').classList.remove('active');
-        }
-
-        function logoutGuru() {
-            if(confirm("Apakah Anda yakin ingin keluar dari sistem SANG21?")) {
-                document.body.innerHTML = `
-                    <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f4f6f9;">
-                        <i class="fas fa-lock" style="font-size: 50px; color: #dc3545; margin-bottom: 20px;"></i>
-                        <h2 style="color: #333; font-family: sans-serif;">Sesi Diakhiri</h2>
-                        <p style="color: #666; margin-bottom: 20px;">Anda telah berhasil keluar dari sistem.</p>
-                        <button onclick="location.reload()" style="padding: 10px 20px; background: #0056b3; color: white; border: none; border-radius: 5px; cursor: pointer;">Masuk Kembali</button>
-                    </div>
-                `;
-            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
