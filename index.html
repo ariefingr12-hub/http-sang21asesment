@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SANG21 ASSESSMENT - SD Version</title>
+    <title id="app-document-title">SANG21 LMS - SD Version</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <style>
@@ -28,6 +26,7 @@
             --success: #28a745;
             --danger: #dc3545;
             --warning: #ffc107;
+            --info: #17a2b8;
             --transition: all 0.3s ease;
         }
 
@@ -45,7 +44,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; transition: var(--transition); }
 
-        .sidebar { width: 260px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 100; }
+        .sidebar { width: 260px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 100; transition: var(--transition); }
         .sidebar-header { padding: 20px; text-align: center; background: var(--primary-color); color: white; }
         .sidebar-header h2 { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
         .sidebar-header p { font-size: 12px; opacity: 0.8; }
@@ -53,14 +52,18 @@
         .nav-links li a { display: flex; align-items: center; padding: 13px 25px; color: var(--text-color); text-decoration: none; font-weight: 500; font-size: 14px; }
         .nav-links li a i { margin-right: 12px; width: 20px; text-align: center; color: var(--primary-color); font-size: 16px; }
         .nav-links li a:hover, .nav-links li a.active { background-color: rgba(0, 86, 179, 0.1); border-left: 4px solid var(--primary-color); color: var(--primary-color); }
+        
+        /* Elemen yang dikontrol Role */
+        .guru-only { display: none; } 
 
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .topbar { height: 60px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
         .toggle-btn, .btn-icon { font-size: 20px; cursor: pointer; color: var(--text-color); background: none; border: none; padding: 5px; }
-        .topbar-right { display: flex; align-items: center; gap: 20px; }
-        .user-profile { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; border-radius: 4px; transition: var(--transition); }
-        .user-profile:hover { background: rgba(0,0,0,0.05); }
-        body.dark-mode .user-profile:hover { background: rgba(255,255,255,0.05); }
+        .topbar-right { display: flex; align-items: center; gap: 15px; }
+        .user-profile { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 12px; border-radius: 6px; background: rgba(0, 86, 179, 0.1); color: var(--primary-color); transition: var(--transition); }
+        .user-profile:hover { background: var(--primary-color); color: white; }
+
+        .domain-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: var(--warning); color: #222; margin-right: 10px; cursor: pointer;}
 
         .content-wrapper { flex: 1; padding: 25px; overflow-y: auto; }
         .page-section { display: none; animation: slideUp 0.3s ease-in-out; }
@@ -78,6 +81,7 @@
         .btn-success { background: var(--success); }
         .btn-danger { background: var(--danger); }
         .btn-warning { background: var(--warning); color: #222; }
+        .btn-info { background: var(--info); }
         
         .form-control { width: 100%; padding: 11px 15px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-color); margin-bottom: 12px; font-size: 14px; }
         .table-responsive { overflow-x: auto; background: var(--card-bg); border-radius: 10px; margin-top: 20px; border: 1px solid var(--border-color); }
@@ -112,43 +116,18 @@
         .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 25px; }
         .chart-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 10px; }
 
-        /* --- TATA LETAK LOGO & VISI SEKOLAH --- */
-        .sidebar-logo { 
-            width: 70px; 
-            height: 70px; 
-            object-fit: cover; 
-            margin-bottom: 12px; 
-            border-radius: 50%; 
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        /* --- KARTU MATERI BELAJAR --- */
+        .materi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .materi-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.3s; cursor: pointer;}
+        .materi-card:hover { transform: translateY(-5px); border-color: var(--primary-color); }
+        .materi-icon { font-size: 30px; color: var(--info); margin-bottom: 15px; }
+        .materi-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .materi-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
 
-        .vision-card { 
-            background: var(--card-bg); 
-            padding: 20px 25px; 
-            border-radius: 10px; 
-            border: 1px solid var(--border-color); 
-            border-left: 5px solid var(--primary-color);
-            margin-bottom: 25px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .vision-card h3 { 
-            color: var(--primary-color); 
-            font-size: 16px; 
-            margin-bottom: 10px; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-        }
-
-        .vision-card p { 
-            font-size: 15px; 
-            line-height: 1.6; 
-            color: var(--text-color); 
-            font-style: italic; 
-            font-weight: 500;
-        }
+        .sidebar-logo { width: 70px; height: 70px; object-fit: cover; margin-bottom: 12px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.3); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .vision-card { background: var(--card-bg); padding: 20px 25px; border-radius: 10px; border: 1px solid var(--border-color); border-left: 5px solid var(--primary-color); margin-bottom: 25px; }
+        .vision-card h3 { color: var(--primary-color); font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .vision-card p { font-size: 15px; line-height: 1.6; font-style: italic; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -156,15 +135,17 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <img src="logo.png" alt="Logo Sekolah" class="sidebar-logo" onerror="this.style.display='none';">
-            <h2>SANG21</h2>
-            <p>SD Assessment System</p>
+            <h2 id="sidebar-app-title">SANG21 LMS</h2>
+            <p id="sidebar-app-subtitle">Sistem Manajemen Pembelajaran</p>
         </div>
         <ul class="nav-links">
             <li><a href="#" onclick="navigate('dashboard')" class="active" id="nav-dashboard"><i class="fas fa-th-large"></i> Beranda</a></li>
-            <li><a href="#" onclick="navigate('siswa')" id="nav-siswa"><i class="fas fa-user-graduate"></i> Data Siswa</a></li>
-            <li><a href="#" onclick="navigate('bank-soal')" id="nav-bank-soal"><i class="fas fa-folder-open"></i> Bank Soal (HOTS)</a></li>
+            <li><a href="#" onclick="navigate('materi')" id="nav-materi"><i class="fas fa-book-reader"></i> Materi Belajar</a></li>
             <li><a href="#" onclick="navigate('ujian')" id="nav-ujian"><i class="fas fa-laptop-code"></i> Ujian Ruang</a></li>
-            <li><a href="#" onclick="navigate('analisis')" id="nav-analisis"><i class="fas fa-chart-bar"></i> Analisis Hasil</a></li>
+            
+            <li class="guru-only"><a href="#" onclick="navigate('siswa')" id="nav-siswa"><i class="fas fa-user-graduate"></i> Data Siswa</a></li>
+            <li class="guru-only"><a href="#" onclick="navigate('bank-soal')" id="nav-bank-soal"><i class="fas fa-folder-open"></i> Bank Soal (HOTS)</a></li>
+            <li class="guru-only"><a href="#" onclick="navigate('analisis')" id="nav-analisis"><i class="fas fa-chart-bar"></i> Analisis Hasil</a></li>
         </ul>
     </nav>
 
@@ -172,9 +153,10 @@
         <header class="topbar">
             <div class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
             <div class="topbar-right">
+                <span class="domain-badge" id="domain-indicator" onclick="simulasiGantiKelas()" title="Klik untuk simulasi pindah kelas/domain">Semua Kelas</span>
                 <button onclick="toggleDarkMode()" class="btn-icon"><i class="fas fa-moon"></i></button>
-                <div class="user-profile" id="auth-btn" onclick="toggleAuth()">
-                    <i class="fas fa-user-circle fa-lg"></i> <span id="auth-text">Masuk (Login Guru)</span>
+                <div class="user-profile" id="user-role-btn" onclick="showLoginModal()">
+                    <i class="fas fa-user-circle fa-lg"></i> <span id="current-role-text">Siswa</span>
                 </div>
             </div>
         </header>
@@ -182,20 +164,42 @@
         <div class="content-wrapper">
             
             <section id="dashboard" class="page-section active">
-                <h2>Beranda Statistik</h2>
+                <h2 id="welcome-title">Selamat Datang di LMS SANG21</h2>
 
                 <div class="vision-card">
                     <h3><i class="fas fa-bullseye"></i> Visi Sekolah</h3>
                     <p>"Terwujudnya peserta didik yang cerdas, berkarakter mulia, berwawasan global, dan menguasai teknologi informasi dengan berlandaskan nilai-nilai Pancasila."</p>
                 </div>
 
-                <div class="stats-grid">
+                <div class="stats-grid guru-only">
                     <div class="stat-card"><i class="fas fa-user-graduate"></i><div><h3>Total Siswa</h3><p id="dash-total-siswa">0</p></div></div>
                     <div class="stat-card"><i class="fas fa-file-alt"></i><div><h3>Total Soal</h3><p id="dash-total-soal">0</p></div></div>
                 </div>
-                <div class="chart-row">
+                
+                <div class="chart-row guru-only">
                     <div class="chart-box" style="height: 320px;"><canvas id="dashboardChart"></canvas></div>
                     <div class="chart-box" style="height: 320px;"><canvas id="dashboardPieChart"></canvas></div>
+                </div>
+            </section>
+
+            <section id="materi" class="page-section">
+                <h2>Modul Materi Pembelajaran</h2>
+                <div class="action-bar guru-only" style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="alert('Fitur Upload Materi segera hadir!')"><i class="fas fa-upload"></i> Unggah Materi Baru</button>
+                </div>
+                <div class="materi-grid">
+                    <div class="materi-card">
+                        <i class="fas fa-file-pdf materi-icon"></i>
+                        <div class="materi-title">Tematik Tema 1 - Organ Gerak</div>
+                        <div class="materi-desc">Pelajari rangkuman materi tentang organ gerak hewan dan manusia beserta fungsinya.</div>
+                        <button class="btn btn-info" style="margin-top: 15px; width: 100%;"><i class="fas fa-book"></i> Baca Materi</button>
+                    </div>
+                    <div class="materi-card">
+                        <i class="fas fa-video materi-icon" style="color: var(--danger)"></i>
+                        <div class="materi-title">Video Pembelajaran Pecahan</div>
+                        <div class="materi-desc">Video interaktif matematika dasar mengenai penjumlahan dan pengurangan pecahan.</div>
+                        <button class="btn btn-info" style="margin-top: 15px; width: 100%;"><i class="fas fa-play"></i> Tonton Video</button>
+                    </div>
                 </div>
             </section>
 
@@ -211,7 +215,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
-                        <thead><tr><th>NIS</th><th>Nama Lengkap</th><th>Jenis Kelamin</th><th>Kelas</th><th style="width: 80px;">Aksi</th></tr></thead>
+                        <thead><tr><th>NIS</th><th>Nama Lengkap</th><th>Jenis Kelamin</th><th>Kelas Terdaftar</th><th style="width: 80px;">Aksi</th></tr></thead>
                         <tbody id="siswa-table-body">
                             <tr><td colspan="5" style="text-align:center;">Mengunduh data siswa...</td></tr>
                         </tbody>
@@ -238,17 +242,17 @@
                 <h2>Ruang Ujian Siswa</h2>
                 <div class="chart-box" style="max-width: 400px; margin-top: 20px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; display:block; margin-bottom: 8px;">Token Validasi (SANG21):</label>
-                        <input type="text" id="exam-token" placeholder="Masukkan Token" class="form-control">
+                        <label style="font-weight: 600; display:block; margin-bottom: 8px;">Token Validasi Ujian:</label>
+                        <input type="text" id="exam-token" placeholder="Masukkan Token" class="form-control" style="text-transform: uppercase;">
                     </div>
-                    <button class="btn btn-primary" style="width: 100%;" onclick="startExam()"><i class="fas fa-sign-in-alt"></i> Masuk Ujian</button>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="startExam()"><i class="fas fa-sign-in-alt"></i> Masuk Ruang Ujian</button>
                 </div>
             </section>
 
             <section id="analisis" class="page-section">
                 <h2>Analisis Butir & Ketuntasan</h2>
                 <div class="action-bar" style="margin-top: 15px;">
-                    <button class="btn btn-success" onclick="cetakHasilUjian()"><i class="fas fa-print"></i> Cetak Hasil Ujian Terakhir</button>
+                    <button class="btn btn-success" onclick="cetakHasilUjian()"><i class="fas fa-print"></i> Cetak Laporan</button>
                 </div>
                 <div class="chart-box" style="margin-top: 20px; max-width: 800px; height: 400px;"><canvas id="analysisChart"></canvas></div>
             </section>
@@ -257,17 +261,12 @@
     </main>
 
     <div class="modal" id="modal-login">
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>Login Administrator / Guru</h3>
-                <span class="close" onclick="closeModal('modal-login')">&times;</span>
-            </div>
-            <form id="form-login" onsubmit="handleAuth(event)">
-                <input type="email" id="login-email" class="form-control" required placeholder="Email (contoh: guru@sekolah.id)">
-                <input type="password" id="login-password" class="form-control" required placeholder="Kata Sandi">
-                <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-sign-in-alt"></i> Masuk Sistem</button>
-                <div id="login-error" style="color: var(--danger); margin-top: 15px; text-align: center; font-size: 13px; font-weight: bold;"></div>
-            </form>
+        <div class="modal-content" style="max-width: 350px; text-align: center;">
+            <h3 style="margin-bottom: 20px;">Pilih Akses Pengguna</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Ini adalah simulasi login untuk melihat perbedaan hak akses pada sistem LMS.</p>
+            <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="setRole('guru')"><i class="fas fa-chalkboard-teacher"></i> Masuk Sebagai Guru / Admin</button>
+            <button class="btn btn-info" style="width: 100%;" onclick="setRole('siswa')"><i class="fas fa-user-graduate"></i> Masuk Sebagai Siswa</button>
+            <span class="close" style="display: block; margin-top: 15px; font-size: 14px; text-decoration: underline;" onclick="closeModal('modal-login')">Batal</span>
         </div>
     </div>
 
@@ -278,7 +277,7 @@
                 <input type="text" id="siswa-nis" class="form-control" required placeholder="NIS (Contoh: 1011)">
                 <input type="text" id="siswa-nama" class="form-control" required placeholder="Nama Lengkap">
                 <select id="siswa-jk" class="form-control"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select>
-                <input type="text" id="siswa-kelas" class="form-control" required placeholder="Kelas (Contoh: 4A)">
+                <input type="text" id="siswa-kelas" class="form-control" required placeholder="Kelas Spesifik (Misal: 5A atau 6B)">
                 <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Simpan Data</button>
             </form>
         </div>
@@ -313,7 +312,7 @@
 
     <div id="exam-interface" style="display: none;">
         <div class="exam-header">
-            <div><h3 style="font-size: 18px;">UJIAN SEKOLAH - SANG21</h3><p style="font-size: 13px; color: var(--text-muted);">Siswa: Uji Coba</p></div>
+            <div><h3 style="font-size: 18px;" id="exam-title-display">UJIAN SEKOLAH - SANG21</h3><p style="font-size: 13px; color: var(--text-muted);">Siswa: Peserta CBT</p></div>
             <div class="exam-timer"><i class="fas fa-clock"></i> <span id="timer-display">00:00:00</span></div>
         </div>
         <div class="exam-body">
@@ -350,96 +349,114 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bGthc2lkZmJmaG93b3pjdWNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTc2ODAsImV4cCI6MjA5NTE3MzY4MH0.JGkdTtl3Nh1LcDeR_dzC1lMiA_IslkQQ3QJFtu3u07A';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+        // ==========================================
+        // SISTEM DETEKSI DOMAIN & FILTER KELAS OTOMATIS
+        // ==========================================
+        let targetKelasGlobal = ""; 
+        
+        function inisialisasiDomain() {
+            const currentHost = window.location.hostname;
+            let forceDomain = localStorage.getItem('sang21_simulasi_kelas') || "";
+            
+            // Baca dari URL atau Fallback ke Simulasi
+            if (currentHost.includes("kelas5") || forceDomain === "5") {
+                targetKelasGlobal = "5";
+            } else if (currentHost.includes("kelas6") || forceDomain === "6") {
+                targetKelasGlobal = "6";
+            } else {
+                targetKelasGlobal = ""; // Umum / Gabungan
+            }
+
+            // Update UI Identitas
+            const badge = document.getElementById('domain-indicator');
+            const appTitle = document.getElementById('sidebar-app-title');
+            const docTitle = document.getElementById('app-document-title');
+            const examTitle = document.getElementById('exam-title-display');
+
+            if(targetKelasGlobal === "5") {
+                badge.innerText = "Domain: KELAS 5";
+                appTitle.innerText = "LMS KELAS 5";
+                docTitle.innerText = "LMS SANG21 - Kelas 5";
+                examTitle.innerText = "UJIAN SEKOLAH - KELAS 5";
+                badge.style.background = "#28a745"; badge.style.color = "white";
+            } else if(targetKelasGlobal === "6") {
+                badge.innerText = "Domain: KELAS 6";
+                appTitle.innerText = "LMS KELAS 6";
+                docTitle.innerText = "LMS SANG21 - Kelas 6";
+                examTitle.innerText = "UJIAN SEKOLAH - KELAS 6";
+                badge.style.background = "#0056b3"; badge.style.color = "white";
+            } else {
+                badge.innerText = "Semua Kelas (Umum)";
+                appTitle.innerText = "SANG21 LMS";
+            }
+        }
+
+        // Fitur Simulasi Ganti Domain untuk Testing di Localhost
+        function simulasiGantiKelas() {
+            const k = prompt("Simulasi Pindah Domain:\nKetik '5' untuk Kelas 5\nKetik '6' untuk Kelas 6\nKosongkan untuk Gabungan");
+            if(k !== null) {
+                localStorage.setItem('sang21_simulasi_kelas', k.trim());
+                window.location.reload();
+            }
+        }
+
+        // ==========================================
+        // SISTEM HAK AKSES (ROLE LOGIN GURU / SISWA)
+        // ==========================================
+        let userRole = localStorage.getItem('sang21_role') || 'siswa';
+
+        function applyRoleUI() {
+            const elements = document.querySelectorAll('.guru-only');
+            const roleText = document.getElementById('current-role-text');
+            const welcomeTitle = document.getElementById('welcome-title');
+            
+            if(userRole === 'guru') {
+                elements.forEach(el => el.style.display = '');
+                roleText.innerText = "Guru / Admin";
+                welcomeTitle.innerText = "Dashboard Guru";
+            } else {
+                elements.forEach(el => el.style.display = 'none');
+                roleText.innerText = "Siswa";
+                welcomeTitle.innerText = "Halo, Semangat Belajar!";
+                // Paksa pindah ke Dashboard jika sedang di menu terlarang
+                const activeNav = document.querySelector('.nav-links a.active');
+                if(activeNav && ['nav-siswa', 'nav-bank-soal', 'nav-analisis'].includes(activeNav.id)) {
+                    navigate('dashboard');
+                }
+            }
+        }
+
+        function showLoginModal() { document.getElementById('modal-login').style.display = 'flex'; }
+        function setRole(role) {
+            userRole = role;
+            localStorage.setItem('sang21_role', role);
+            closeModal('modal-login');
+            applyRoleUI();
+            navigate('dashboard');
+        }
+
+        // ==========================================
+        // ROUTING MENU
+        // ==========================================
         let bankSoalAktif = [];
         let jawabanSiswa = {};
         let currentQuestionIndex = 0;
         let examInterval;
         let isExamRunning = false;
 
-        // ==========================================
-        // SISTEM AUTENTIKASI & HAK AKSES (RBAC)
-        // ==========================================
-        let currentUser = null;
-
-        async function checkSession() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            updateAuthState(session?.user || null);
-            
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-                updateAuthState(session?.user || null);
-            });
-        }
-
-        function updateAuthState(user) {
-            currentUser = user;
-            const authText = document.getElementById('auth-text');
-            
-            if (user) {
-                authText.innerText = `Logout (${user.email.split('@')[0]})`;
-                enforceRBAC(true);
-            } else {
-                authText.innerText = "Masuk (Login Guru)";
-                enforceRBAC(false);
-            }
-        }
-
-        function enforceRBAC(isTeacher) {
-            document.getElementById('nav-siswa').style.display = isTeacher ? 'flex' : 'none';
-            document.getElementById('nav-bank-soal').style.display = isTeacher ? 'flex' : 'none';
-            document.getElementById('nav-analisis').style.display = isTeacher ? 'flex' : 'none';
-            
-            const activeSection = document.querySelector('.page-section.active');
-            if (!isTeacher && activeSection && ['siswa', 'bank-soal', 'analisis'].includes(activeSection.id)) {
-                navigate('ujian');
-            }
-        }
-
-        function toggleAuth() {
-            if (currentUser) {
-                if(confirm("Apakah Anda yakin ingin keluar (Logout)?")) {
-                    supabaseClient.auth.signOut();
-                    alert("Berhasil Logout. Kembali ke mode Siswa.");
-                    navigate('ujian');
-                }
-            } else {
-                document.getElementById('modal-login').style.display = 'flex';
-                document.getElementById('login-error').innerText = "";
-            }
-        }
-
-        async function handleAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
-
-            if (error) {
-                document.getElementById('login-error').innerText = "Gagal masuk: Email atau Sandi salah!";
-            } else {
-                closeModal('modal-login');
-                document.getElementById('form-login').reset();
-                alert("Berhasil masuk sebagai Guru!");
-                navigate('dashboard');
-            }
-        }
-
-        // ==========================================
-        // NAVIGASI & UTILITIES
-        // ==========================================
         function navigate(sectionId) {
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.nav-links a').forEach(nav => nav.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
+            
+            const targetSection = document.getElementById(sectionId);
+            if(targetSection) targetSection.classList.add('active');
+            
             const activeNav = document.getElementById(`nav-${sectionId}`);
             if(activeNav) activeNav.classList.add('active');
 
-            if(sectionId === 'siswa' && currentUser) renderSiswaTable();
-            if(sectionId === 'bank-soal' && currentUser) renderSoalTable();
-            if(sectionId === 'dashboard' || (sectionId === 'analisis' && currentUser)) { updateDashboardCounters(); loadChartsEngine(); }
+            if(sectionId === 'siswa' && userRole === 'guru') renderSiswaTable();
+            if(sectionId === 'bank-soal' && userRole === 'guru') renderSoalTable();
+            if(sectionId === 'dashboard' || sectionId === 'analisis') { updateDashboardCounters(); loadChartsEngine(); }
         }
 
         function toggleSidebar() { const sb = document.getElementById('sidebar'); sb.style.display = (sb.style.display === 'none') ? 'flex' : 'none'; }
@@ -447,30 +464,37 @@
         function closeModal(id) { document.getElementById(id).style.display = "none"; }
 
         // ==========================================
-        // MANAJEMEN DATA SISWA
+        // MANAJEMEN DATA SISWA (Terintegrasi Domain)
         // ==========================================
         async function renderSiswaTable(filterText = "") {
             const tbody = document.getElementById('siswa-table-body');
             tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Mengambil berkas siswa dari Supabase...</td></tr>";
             
-            let query = supabaseClient.from('siswa').select('*').order('nama', { ascending: true });
+            let query = supabaseClient.from('siswa').select('*');
+            
+            // FILTER BERDASARKAN DOMAIN
+            if (targetKelasGlobal !== "") {
+                query = query.eq('tingkat_kelas', targetKelasGlobal);
+            }
+
             if (filterText) query = query.or(`nama.ilike.%${filterText}%,nis.ilike.%${filterText}%`);
             
-            const { data, error } = await query;
+            const { data, error } = await query.order('nama', { ascending: true });
+            
             if (error) { 
-                tbody.innerHTML = `<tr><td colspan='5' style='color:red; font-weight:bold; text-align:center;'>Gagal memuat: ${error.message}. <br>Pastikan RLS pada tabel 'siswa' di Supabase dimatikan!</td></tr>`; 
+                tbody.innerHTML = `<tr><td colspan='5' style='color:red; font-weight:bold; text-align:center;'>Gagal memuat: ${error.message}</td></tr>`; 
                 return; 
             }
             
             tbody.innerHTML = "";
-            if (data.length === 0) { tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Belum ada data siswa terdaftar.</td></tr>"; return; }
+            if (data.length === 0) { tbody.innerHTML = `<tr><td colspan='5' style='text-align:center;'>Belum ada data siswa di Kelas ${targetKelasGlobal || 'ini'}.</td></tr>`; return; }
             
             data.forEach(v => {
                 tbody.innerHTML += `<tr>
                     <td><b>${v.nis}</b></td>
                     <td>${v.nama}</td>
                     <td>${v.jk}</td>
-                    <td><span style="background:#e0e0e0; color:#333; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:600;">${v.kelas}</span></td>
+                    <td><span style="background:#e0e0e0; color:#333; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:600;">${v.kelas} (Tingkat ${v.tingkat_kelas || '-'})</span></td>
                     <td><button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteSiswa('${v.id}')"><i class="fas fa-trash"></i></button></td>
                 </tr>`;
             });
@@ -484,25 +508,19 @@
                 nis: document.getElementById('siswa-nis').value.trim(), 
                 nama: document.getElementById('siswa-nama').value.trim(), 
                 jk: document.getElementById('siswa-jk').value, 
-                kelas: document.getElementById('siswa-kelas').value.trim() 
+                kelas: document.getElementById('siswa-kelas').value.trim(),
+                tingkat_kelas: targetKelasGlobal // Otomatis masuk ke kelas domain yang aktif
             };
             
             const { error } = await supabaseClient.from('siswa').insert([obj]);
-            if(error) {
-                alert("Gagal menambahkan siswa: " + error.message);
-            } else {
-                closeModal('modal-siswa'); 
-                renderSiswaTable();
-                updateDashboardCounters();
-            }
+            if(error) alert("Gagal menambahkan siswa: " + error.message);
+            else { closeModal('modal-siswa'); renderSiswaTable(); updateDashboardCounters(); }
         }
 
         async function deleteSiswa(id) { 
             if(confirm("Apakah Anda yakin ingin menghapus data siswa ini?")) { 
-                const { error } = await supabaseClient.from('siswa').delete().eq('id', id); 
-                if(error) alert("Gagal menghapus: " + error.message);
-                renderSiswaTable(); 
-                updateDashboardCounters();
+                await supabaseClient.from('siswa').delete().eq('id', id); 
+                renderSiswaTable(); updateDashboardCounters();
             } 
         }
 
@@ -511,7 +529,6 @@
         async function importExcelData(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
@@ -520,36 +537,27 @@
                     const sheetName = workbook.SheetNames[0];
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-                    if(json.length === 0) { alert("File Excel kosong!"); return; }
+                    if(json.length === 0) return;
 
-                    const mappedData = json.map(row => {
-                        return {
-                            nis: String(row.nis || row.NIS || row.Nis || row['No Induk'] || ""),
-                            nama: String(row.nama || row.Nama || row.NAMA || row['Nama Lengkap'] || ""),
-                            jk: String(row.jk || row.JK || row['Jenis Kelamin'] || "Laki-laki"),
-                            kelas: String(row.kelas || row.Kelas || row.KELAS || "")
-                        };
-                    });
+                    const mappedData = json.map(row => ({
+                        nis: String(row.nis || row.NIS || ""),
+                        nama: String(row.nama || row.Nama || ""),
+                        jk: String(row.jk || row.JK || "Laki-laki"),
+                        kelas: String(row.kelas || row.Kelas || ""),
+                        tingkat_kelas: targetKelasGlobal // Injeksi otomatis dari domain
+                    }));
 
                     const { error } = await supabaseClient.from('siswa').insert(mappedData);
-                    if(error) {
-                        alert("Gagal menyimpan data Excel ke Supabase: " + error.message);
-                    } else {
-                        alert(`Sukses mengimpor ${mappedData.length} data siswa baru!`);
-                        renderSiswaTable();
-                        updateDashboardCounters();
-                    }
-                } catch(err) {
-                    alert("Gagal membaca struktur berkas Excel: " + err.message);
-                }
+                    if(error) alert("Gagal mengimpor: " + error.message);
+                    else { alert(`Sukses mengimpor ${mappedData.length} data!`); renderSiswaTable(); }
+                } catch(err) { alert("Gagal baca Excel: " + err.message); }
             };
             reader.readAsArrayBuffer(file);
             event.target.value = "";
         }
 
-
         // ==========================================
-        // MANAJEMEN BANK SOAL
+        // MANAJEMEN BANK SOAL (Terintegrasi Domain)
         // ==========================================
         function handleJenisSoalChange() {
             const jenis = document.getElementById('soal-jenis').value;
@@ -562,14 +570,14 @@
             const tbody = document.getElementById('soal-table-body');
             tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Mengunduh data soal...</td></tr>";
 
-            const { data, error } = await supabaseClient.from('bank_soal').select('*').order('id', { ascending: true });
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan='4' style='text-align:center; color:red; font-weight:bold;'>Gagal memuat bank soal: ${error.message}</td></tr>`;
-                return;
-            }
+            let query = supabaseClient.from('bank_soal').select('*');
+            if (targetKelasGlobal !== "") query = query.eq('tingkat_kelas', targetKelasGlobal);
 
+            const { data, error } = await query.order('id', { ascending: true });
+            
+            if (error) { tbody.innerHTML = `<tr><td colspan='4' style='text-align:center; color:red;'>Error: ${error.message}</td></tr>`; return; }
             tbody.innerHTML = "";
-            if (data.length === 0) { tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Belum ada koleksi soal di Supabase.</td></tr>"; return; }
+            if (data.length === 0) { tbody.innerHTML = `<tr><td colspan='4' style='text-align:center;'>Belum ada soal untuk tingkat kelas ${targetKelasGlobal || 'ini'}.</td></tr>`; return; }
 
             data.forEach(s => {
                 const tr = document.createElement('tr');
@@ -595,7 +603,14 @@
                 opsiData = { A: document.getElementById('opsi-a').value, B: document.getElementById('opsi-b').value, C: document.getElementById('opsi-c').value, D: document.getElementById('opsi-d').value };
             } else if(jenis === 'benar_salah') { opsiData = { A: "Benar", B: "Salah" }; }
 
-            const payload = { jenis: jenis, soal: document.getElementById('soal-teks').value, opsi: opsiData, kunci: document.getElementById('soal-kunci').value };
+            const payload = { 
+                jenis: jenis, 
+                soal: document.getElementById('soal-teks').value, 
+                opsi: opsiData, 
+                kunci: document.getElementById('soal-kunci').value,
+                tingkat_kelas: targetKelasGlobal
+            };
+            
             const { error } = await supabaseClient.from('bank_soal').insert([payload]);
             if(error) alert("Gagal simpan soal: " + error.message);
             closeModal('modal-soal'); renderSoalTable();
@@ -603,16 +618,19 @@
 
         async function deleteSoal(id) { if(confirm("Hapus soal dari Supabase?")) { await supabaseClient.from('bank_soal').delete().eq('id', id); renderSoalTable(); } }
 
-
         // ==========================================
-        // ENGINE ANTARMUKA UJIAN SISWA
+        // ENGINE ANTARMUKA UJIAN SISWA (CBT)
         // ==========================================
         async function startExam() {
             const token = document.getElementById('exam-token').value.trim().toUpperCase();
             if(token !== "SANG21") { alert("Token Master Salah!"); return; }
 
-            const { data, error } = await supabaseClient.from('bank_soal').select('*').order('id', { ascending: true });
-            if(error || !data || data.length === 0) { alert("Lembar soal di Supabase kosong!"); return; }
+            // Unduh soal SESUAI KELAS DOMAIN SAAT INI
+            let query = supabaseClient.from('bank_soal').select('*');
+            if(targetKelasGlobal !== "") query = query.eq('tingkat_kelas', targetKelasGlobal);
+
+            const { data, error } = await query.order('id', { ascending: true });
+            if(error || !data || data.length === 0) { alert("Lembar soal di Supabase kosong atau belum ada untuk kelas ini!"); return; }
             bankSoalAktif = data;
 
             document.documentElement.requestFullscreen().catch(()=>{});
@@ -669,7 +687,6 @@
                 const val = jawabanSiswa[soal.id] || "";
                 optContainer.innerHTML = `<textarea class="form-control" rows="6" placeholder="Ketik jawaban cerita/analisis lengkap kamu di sini..." onkeyup="saveAnswer(${soal.id}, this.value)">${val}</textarea>`;
             }
-
             if(window.MathJax && MathJax.typeset) MathJax.typeset();
         }
 
@@ -705,25 +722,38 @@
             localStorage.removeItem('sang21_draft_ans');
 
             document.getElementById('exam-interface').style.display = "none";
-            alert(`Ujian Selesai! Nilai Sementara Uji Coba: ${nilai}`);
-            // Siswa diarahkan ke dashboard setelah ujian, bukan halaman analisis guru.
-            navigate('dashboard'); 
+            alert(`Ujian Selesai! Nilai Sementara Kamu: ${nilai}`);
+            
+            // Tampilkan kembali menu untuk Siswa jika mereka ujian selesai
+            if(userRole === 'siswa') navigate('dashboard');
+            else navigate('analisis');
         }
-
 
         // ==========================================
         // INDIKATOR COUNTER DASHBOARD & GRAFIK
         // ==========================================
         async function updateDashboardCounters() {
-            const { count: c1, error: e1 } = await supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
+            if(userRole !== 'guru') return; // Jangan load untuk siswa
+            
+            let q1 = supabaseClient.from('siswa').select('*', { count: 'exact', head: true });
+            let q2 = supabaseClient.from('bank_soal').select('*', { count: 'exact', head: true });
+            
+            if(targetKelasGlobal !== "") {
+                q1 = q1.eq('tingkat_kelas', targetKelasGlobal);
+                q2 = q2.eq('tingkat_kelas', targetKelasGlobal);
+            }
+
+            const { count: c1, error: e1 } = await q1;
             if (!e1 && c1 !== null) document.getElementById('dash-total-siswa').innerText = c1;
             
-            const { count: c2, error: e2 } = await supabaseClient.from('bank_soal').select('*', { count: 'exact', head: true });
+            const { count: c2, error: e2 } = await q2;
             if (!e2 && c2 !== null) document.getElementById('dash-total-soal').innerText = c2;
         }
 
         let chart1, chart2, chart3;
         function loadChartsEngine() {
+            if(userRole !== 'guru') return; // Sembunyikan chart untuk siswa
+
             const isDark = document.body.classList.contains('dark-mode');
             const colorLabel = isDark ? '#e0e0e0' : '#333333';
             const lastScore = parseInt(localStorage.getItem('last_score_result')) || 85;
@@ -743,11 +773,7 @@
         // ==========================================
         function cetakHasilUjian() {
             const lastScore = localStorage.getItem('last_score_result');
-            
-            if (lastScore === null) {
-                alert("Belum ada data ujian yang diselesaikan untuk dicetak.");
-                return;
-            }
+            if (lastScore === null) { alert("Belum ada data ujian yang diselesaikan untuk dicetak."); return; }
 
             const printWindow = window.open('', '_blank');
             const tanggalCetak = new Date().toLocaleString('id-ID');
@@ -756,7 +782,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Cetak Hasil Ujian - SANG21</title>
+                    <title>Cetak Hasil Ujian - SANG21 LMS</title>
                     <style>
                         body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; text-align: center; padding: 40px; color: #333; }
                         .header { margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
@@ -771,38 +797,23 @@
                 <body>
                     <div class="header">
                         <h1>BUKTI HASIL UJIAN</h1>
-                        <p>Sistem Asesmen SANG21 - Tingkat Sekolah Dasar</p>
+                        <p>Sistem Manajemen Pembelajaran SANG21</p>
                     </div>
-                    
-                    <p style="font-size: 16px;">Nama Siswa: <b>Uji Coba</b></p>
-                    
-                    <div class="score-container">
-                        <h3>Nilai Akhir</h3>
-                        <div class="score-value">${lastScore}</div>
-                    </div>
-
-                    <div class="footer">
-                        Dokumen ini dicetak secara otomatis oleh sistem pada: ${tanggalCetak}
-                    </div>
-
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                        }
-                    <\/script>
+                    <p style="font-size: 16px;">Nama Siswa: <b>Peserta Ujian</b></p>
+                    <div class="score-container"><h3>Nilai Akhir</h3><div class="score-value">${lastScore}</div></div>
+                    <div class="footer">Dokumen ini dicetak otomatis pada: ${tanggalCetak}</div>
+                    <script> window.onload = function() { window.print(); } <\/script>
                 </body>
                 </html>
             `);
             printWindow.document.close();
         }
 
-        // ==========================================
-        // INIT START
-        // ==========================================
+        // INIT SAAT PERTAMA LOAD
         document.addEventListener("DOMContentLoaded", () => {
             if(localStorage.getItem('sang21_theme') === 'dark') document.body.classList.add('dark-mode');
-            checkSession(); // Memeriksa status login saat web dimuat
-            updateDashboardCounters();
+            inisialisasiDomain(); // Baca domain url
+            applyRoleUI();        // Sembunyikan/tampilkan menu sesuai role
             navigate('dashboard');
         });
     </script>
