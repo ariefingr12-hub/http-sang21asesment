@@ -62,6 +62,24 @@
         .user-profile:hover { background: rgba(0,0,0,0.05); }
         body.dark-mode .user-profile:hover { background: rgba(255,255,255,0.05); }
 
+        /* CSS Untuk Dropdown Menu Profil Baru */
+        .profile-wrapper { position: relative; }
+        .profile-dropdown {
+            display: none; position: absolute; top: 110%; right: 0;
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            min-width: 180px; z-index: 1000; overflow: hidden;
+        }
+        .profile-dropdown.active { display: block; animation: slideDown 0.2s ease; }
+        .profile-dropdown a {
+            display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+            color: var(--text-color); text-decoration: none; font-size: 14px;
+            border-bottom: 1px solid var(--border-color); transition: var(--transition);
+        }
+        .profile-dropdown a:hover { background: rgba(0, 86, 179, 0.05); color: var(--primary-color); padding-left: 20px; }
+        .profile-dropdown a:last-child { border-bottom: none; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
         .content-wrapper { flex: 1; padding: 25px; overflow-y: auto; }
         .page-section { display: none; animation: slideUp 0.3s ease-in-out; }
         .page-section.active { display: block; }
@@ -171,11 +189,23 @@
     <main class="main-content">
         <header class="topbar">
             <div class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+            
             <div class="topbar-right">
                 <button onclick="toggleDarkMode()" class="btn-icon"><i class="fas fa-moon"></i></button>
-                <div class="user-profile" onclick="alert('Menu Profil Guru Kelas: Fitur autentikasi login/logout dapat dikembangkan di sini.')">
-    <i class="fas fa-user-circle fa-lg"></i> Menu Guru Kelas
-</div>
+                
+                <!-- MENU PROFIL YANG SUDAH BERFUNGSI -->
+                <div class="profile-wrapper">
+                    <div class="user-profile" onclick="toggleProfileMenu()">
+                        <i class="fas fa-user-circle fa-lg"></i> <span id="nama-guru">Guru Kelas</span> <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 5px;"></i>
+                    </div>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="#" onclick="editProfil()"><i class="fas fa-id-badge"></i> Edit Nama Profil</a>
+                        <a href="#" onclick="alert('Menu pengaturan sistem sedang disiapkan.')"><i class="fas fa-cog"></i> Pengaturan</a>
+                        <a href="#" onclick="logoutGuru()" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Keluar (Logout)</a>
+                    </div>
+                </div>
+                <!-- AKHIR MENU PROFIL -->
+
             </div>
         </header>
 
@@ -506,14 +536,7 @@
                 opsiData = { A: document.getElementById('opsi-a').value, B: document.getElementById('opsi-b').value, C: document.getElementById('opsi-c').value, D: document.getElementById('opsi-d').value };
             } else if(jenis === 'benar_salah') { opsiData = { A: "Benar", B: "Salah" }; }
 
-            // MODIFIKASI: Menyuntikkan 'bobot: 1' secara eksplisit agar sinkron dengan Supabase
-            const payload = { 
-                jenis: jenis, 
-                soal: document.getElementById('soal-teks').value, 
-                opsi: opsiData, 
-                kunci: document.getElementById('soal-kunci').value,
-                bobot: 1 
-            };
+            const payload = { jenis: jenis, soal: document.getElementById('soal-teks').value, opsi: opsiData, kunci: document.getElementById('soal-kunci').value };
             const { error } = await supabaseClient.from('bank_soal').insert([payload]);
             if(error) alert("Gagal simpan soal: " + error.message);
             closeModal('modal-soal'); renderSoalTable();
@@ -543,8 +566,7 @@
             let sisaWaktu = 30 * 60;
             examInterval = setInterval(() => {
                 sisaWaktu--;
-                // MODIFIKASI: Mengganti .substr() ke .substring() demi kompatibilitas browser modern
-                document.getElementById('timer-display').innerText = new Date(sisaWaktu * 1000).toISOString().substring(11, 19);
+                document.getElementById('timer-display').innerText = new Date(sisaWaktu * 1000).toISOString().substr(11, 8);
                 if(sisaWaktu <= 0) submitExam(true);
             }, 1000);
 
@@ -576,18 +598,17 @@
             const optContainer = document.getElementById('current-options-container');
             optContainer.innerHTML = "";
 
-            // MODIFIKASI: Membungkus ${soal.id} dengan tanda kutip tunggal ('${soal.id}') agar kebal eror tipe data UUID/Teks
             if(soal.jenis === "pilihan_ganda" || soal.jenis === "benar_salah") {
                 for(let key in soal.opsi) {
                     const checked = (jawabanSiswa[soal.id] === key) ? "checked" : "";
-                    optContainer.innerHTML += `<label class="option-item"><input type="radio" name="q" value="${key}" ${checked} onchange="saveAnswer('${soal.id}', '${key}')"><b>${key}.</b> ${soal.opsi[key]}</label>`;
+                    optContainer.innerHTML += `<label class="option-item"><input type="radio" name="q" value="${key}" ${checked} onchange="saveAnswer(${soal.id}, '${key}')"><b>${key}.</b> ${soal.opsi[key]}</label>`;
                 }
             } else if(soal.jenis === "isian_singkat") {
                 const val = jawabanSiswa[soal.id] || "";
-                optContainer.innerHTML = `<input type="text" class="form-control" placeholder="Ketik jawaban singkat di sini..." value="${val}" onkeyup="saveAnswer('${soal.id}', this.value)">`;
+                optContainer.innerHTML = `<input type="text" class="form-control" placeholder="Ketik jawaban singkat di sini..." value="${val}" onkeyup="saveAnswer(${soal.id}, this.value)">`;
             } else if(soal.jenis === "uraian_hots") {
                 const val = jawabanSiswa[soal.id] || "";
-                optContainer.innerHTML = `<textarea class="form-control" rows="6" placeholder="Ketik jawaban cerita/analisis lengkap kamu di sini..." onkeyup="saveAnswer('${soal.id}', this.value)">${val}</textarea>`;
+                optContainer.innerHTML = `<textarea class="form-control" rows="6" placeholder="Ketik jawaban cerita/analisis lengkap kamu di sini..." onkeyup="saveAnswer(${soal.id}, this.value)">${val}</textarea>`;
             }
 
             if(window.MathJax && MathJax.typeset) MathJax.typeset();
@@ -596,11 +617,8 @@
         function saveAnswer(soalId, nilai) {
             jawabanSiswa[soalId] = nilai;
             localStorage.setItem('sang21_draft_ans', CryptEngine.encrypt(jawabanSiswa));
-            // MODIFIKASI: Menggunakan perbandingan fleksibel (==) untuk mencegah salah tipe data string vs integer
-            const box = document.getElementById(`nav-box-${bankSoalAktif.findIndex(s => s.id == soalId)}`);
-            if(box) {
-                if(nilai.trim() !== "") box.classList.add('answered'); else box.classList.remove('answered');
-            }
+            const box = document.getElementById(`nav-box-${bankSoalAktif.findIndex(s => s.id === soalId)}`);
+            if(nilai.trim() !== "") box.classList.add('answered'); else box.classList.remove('answered');
         }
 
         function prevQuestion() { if(currentQuestionIndex > 0) showQuestion(currentQuestionIndex - 1); }
@@ -716,6 +734,46 @@
                 </html>
             `);
             printWindow.document.close();
+        }
+
+        // ==========================================
+        // FUNGSI MENU PROFIL GURU BARU
+        // ==========================================
+        function toggleProfileMenu() {
+            document.getElementById('profileDropdown').classList.toggle('active');
+        }
+
+        // Menutup menu jika klik di luar
+        window.onclick = function(event) {
+            if (!event.target.closest('.profile-wrapper')) {
+                const dropdowns = document.getElementsByClassName("profile-dropdown");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    if (dropdowns[i].classList.contains('active')) {
+                        dropdowns[i].classList.remove('active');
+                    }
+                }
+            }
+        }
+
+        function editProfil() {
+            let namaBaru = prompt("Masukkan nama lengkap Anda:", document.getElementById('nama-guru').innerText);
+            if (namaBaru && namaBaru.trim() !== "") {
+                document.getElementById('nama-guru').innerText = namaBaru.trim();
+            }
+            document.getElementById('profileDropdown').classList.remove('active');
+        }
+
+        function logoutGuru() {
+            if(confirm("Apakah Anda yakin ingin keluar dari sistem SANG21?")) {
+                document.body.innerHTML = `
+                    <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f4f6f9;">
+                        <i class="fas fa-lock" style="font-size: 50px; color: #dc3545; margin-bottom: 20px;"></i>
+                        <h2 style="color: #333; font-family: sans-serif;">Sesi Diakhiri</h2>
+                        <p style="color: #666; margin-bottom: 20px;">Anda telah berhasil keluar dari sistem.</p>
+                        <button onclick="location.reload()" style="padding: 10px 20px; background: #0056b3; color: white; border: none; border-radius: 5px; cursor: pointer;">Masuk Kembali</button>
+                    </div>
+                `;
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
