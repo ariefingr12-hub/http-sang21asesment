@@ -45,11 +45,7 @@
         body { background-color: var(--bg-color); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; transition: var(--transition); }
 
         /* --- SISTEM HAK AKSES (ROLE CSS) --- */
-        /* Sembunyikan untuk Siswa */
-        body.role-siswa .guru-only,
-        body.role-siswa .staff-only { display: none !important; }
-        
-        /* Sembunyikan fitur edit/hapus untuk Kepsek */
+        body.role-siswa .guru-only, body.role-siswa .staff-only { display: none !important; }
         body.role-kepsek .guru-only { display: none !important; }
 
         .sidebar { width: 260px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 100; transition: var(--transition); }
@@ -64,9 +60,15 @@
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .topbar { height: 60px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
         .toggle-btn, .btn-icon { font-size: 20px; cursor: pointer; color: var(--text-color); background: none; border: none; padding: 5px; }
-        .topbar-right { display: flex; align-items: center; gap: 15px; }
+        .topbar-right { display: flex; align-items: center; gap: 15px; position: relative; }
+        
         .user-profile { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 12px; border-radius: 6px; background: rgba(0, 86, 179, 0.1); color: var(--primary-color); transition: var(--transition); }
         .user-profile:hover { background: var(--primary-color); color: white; }
+        
+        /* Dropdown Logout */
+        .logout-dropdown { display: none; position: absolute; top: 45px; right: 0; background: var(--card-bg); border: 1px solid var(--danger); border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; z-index: 200; }
+        .logout-dropdown button { width: 100%; padding: 10px 20px; background: none; border: none; color: var(--danger); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .logout-dropdown button:hover { background: var(--danger); color: white; }
 
         .domain-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: var(--warning); color: #222; margin-right: 10px; cursor: pointer;}
 
@@ -81,8 +83,8 @@
         .stat-card h3 { font-size: 13px; color: var(--text-muted); text-transform: uppercase; }
         .stat-card p { font-size: 24px; font-weight: 700; margin-top: 4px; }
 
-        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; color: white; }
-        .btn-primary { background: var(--primary-color); }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white; transition: 0.2s;}
+        .btn-primary { background: var(--primary-color); } .btn-primary:hover { background: var(--secondary-color); }
         .btn-success { background: var(--success); }
         .btn-danger { background: var(--danger); }
         .btn-warning { background: var(--warning); color: #222; }
@@ -98,6 +100,21 @@
         .modal-content { background-color: var(--card-bg); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; border: 1px solid var(--border-color); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
         .close { font-size: 24px; cursor: pointer; color: var(--text-muted); }
+
+        /* --- HALAMAN LOGIN FULLSCREEN --- */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--bg-color) 0%, #dbeafe 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 10000;
+        }
+        body.dark-mode #login-overlay { background: linear-gradient(135deg, var(--bg-color) 0%, #1a202c 100%); }
+        .login-box {
+            background: var(--card-bg); padding: 40px; border-radius: 15px; width: 100%; max-width: 400px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1); border: 1px solid var(--border-color); text-align: center;
+        }
+        .login-logo { width: 80px; height: 80px; margin-bottom: 15px; }
+        .login-box h2 { color: var(--primary-color); margin-bottom: 5px; font-weight: 800; }
+        .login-box p { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
 
         /* Ujian Browser */
         #exam-interface { display: flex; flex-direction: column; height: 100vh; background: var(--bg-color); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; }
@@ -135,7 +152,24 @@
         .vision-card p { font-size: 15px; line-height: 1.6; font-style: italic; font-weight: 500; }
     </style>
 </head>
-<body class="role-siswa"> <nav class="sidebar" id="sidebar">
+<body>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <img src="logo.png" alt="Logo" class="login-logo" onerror="this.style.display='none';">
+            <h2>SANG21 LMS</h2>
+            <p>Silakan Masuk untuk Melanjutkan</p>
+            <form onsubmit="prosesLogin(event)">
+                <input type="text" id="login-username" class="form-control" required placeholder="Masukkan Username...">
+                <input type="password" id="login-password" class="form-control" required placeholder="Masukkan Password...">
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 12px;">
+                    <i class="fas fa-sign-in-alt"></i> MASUK
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <img src="logo.png" alt="Logo Sekolah" class="sidebar-logo" onerror="this.style.display='none';">
             <h2 id="sidebar-app-title">SANG21 LMS</h2>
@@ -148,7 +182,6 @@
             
             <li class="staff-only"><a href="#" onclick="navigate('siswa')" id="nav-siswa"><i class="fas fa-user-graduate"></i> Data Siswa</a></li>
             <li class="staff-only"><a href="#" onclick="navigate('analisis')" id="nav-analisis"><i class="fas fa-chart-bar"></i> Analisis Hasil</a></li>
-
             <li class="guru-only"><a href="#" onclick="navigate('bank-soal')" id="nav-bank-soal"><i class="fas fa-folder-open"></i> Bank Soal (HOTS)</a></li>
         </ul>
     </nav>
@@ -159,8 +192,14 @@
             <div class="topbar-right">
                 <span class="domain-badge" id="domain-indicator" onclick="simulasiGantiKelas()" title="Klik untuk simulasi pindah kelas/domain">Semua Kelas</span>
                 <button onclick="toggleDarkMode()" class="btn-icon"><i class="fas fa-moon"></i></button>
-                <div class="user-profile" id="user-role-btn" onclick="showLoginModal()">
-                    <i class="fas fa-user-circle fa-lg"></i> <span id="current-role-text">Siswa</span>
+                
+                <div style="position: relative;">
+                    <div class="user-profile" onclick="toggleLogoutMenu()">
+                        <i class="fas fa-user-circle fa-lg"></i> <span id="current-role-text">Memuat...</span>
+                    </div>
+                    <div class="logout-dropdown" id="logout-menu">
+                        <button onclick="prosesLogout()"><i class="fas fa-sign-out-alt"></i> Keluar (Logout)</button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -265,25 +304,6 @@
         </div>
     </main>
 
-    <div class="modal" id="modal-login">
-        <div class="modal-content" style="max-width: 350px; text-align: center;">
-            <h3 style="margin-bottom: 20px;">Pilih Akses Pengguna</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Simulasi login untuk melihat perbedaan hak akses pada sistem LMS.</p>
-            
-            <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="setRole('guru')">
-                <i class="fas fa-chalkboard-teacher"></i> Masuk Sebagai Guru / Admin
-            </button>
-            <button class="btn btn-success" style="width: 100%; margin-bottom: 10px;" onclick="setRole('kepsek')">
-                <i class="fas fa-user-tie"></i> Masuk Sebagai Kepala Sekolah
-            </button>
-            <button class="btn btn-info" style="width: 100%;" onclick="setRole('siswa')">
-                <i class="fas fa-user-graduate"></i> Masuk Sebagai Siswa
-            </button>
-            
-            <span class="close" style="display: block; margin-top: 15px; font-size: 14px; text-decoration: underline; cursor: pointer;" onclick="closeModal('modal-login')">Batal</span>
-        </div>
-    </div>
-
     <div class="modal" id="modal-siswa">
         <div class="modal-content">
             <div class="modal-header"><h3 id="modal-siswa-title">Entri Data Siswa</h3><span class="close" onclick="closeModal('modal-siswa')">&times;</span></div>
@@ -326,7 +346,7 @@
 
     <div id="exam-interface" style="display: none;">
         <div class="exam-header">
-            <div><h3 style="font-size: 18px;" id="exam-title-display">UJIAN SEKOLAH - SANG21</h3><p style="font-size: 13px; color: var(--text-muted);">Siswa: Peserta CBT</p></div>
+            <div><h3 style="font-size: 18px;" id="exam-title-display">UJIAN SEKOLAH - SANG21</h3><p style="font-size: 13px; color: var(--text-muted);">Siswa: <span id="exam-siswa-name">Peserta CBT</span></p></div>
             <div class="exam-timer"><i class="fas fa-clock"></i> <span id="timer-display">00:00:00</span></div>
         </div>
         <div class="exam-body">
@@ -347,6 +367,28 @@
     </div>
 
     <script>
+        // ==========================================
+        // KONFIGURASI DATABASE USER & PASSWORD (ADMIN AREA)
+        // ==========================================
+        // Anda bisa mengganti, menghapus, atau menambah Akun Pengguna di sini.
+        const DATABASE_PENGGUNA = {
+            "guru": { 
+                password: "123", 
+                role: "guru", 
+                namaLengkap: "Bapak Guru SANG21" 
+            },
+            "kepsek": { 
+                password: "123", 
+                role: "kepsek", 
+                namaLengkap: "Bapak Kepala Sekolah" 
+            },
+            "siswa": { 
+                password: "123", 
+                role: "siswa", 
+                namaLengkap: "Siswa SD Teladan" 
+            }
+        };
+
         // ==========================================
         // ENGINE ENKRIPSI AMAN (AES-256)
         // ==========================================
@@ -400,38 +442,68 @@
         }
 
         // ==========================================
-        // SISTEM HAK AKSES (ROLE LOGIN GURU/KEPSEK/SISWA)
+        // SISTEM LOGIN & HAK AKSES (AUTENTIKASI)
         // ==========================================
-        let userRole = localStorage.getItem('sang21_role') || 'siswa';
+        let userRole = '';
+        let userName = '';
 
-        function applyRoleUI() {
-            // Update CSS Rules
-            document.body.classList.remove('role-siswa', 'role-guru', 'role-kepsek');
-            document.body.classList.add(`role-${userRole}`);
-
-            const roleText = document.getElementById('current-role-text');
-            const welcomeTitle = document.getElementById('welcome-title');
-            
-            if(userRole === 'guru') {
-                roleText.innerText = "Guru / Admin"; welcomeTitle.innerText = "Dashboard Guru";
-            } else if(userRole === 'kepsek') {
-                roleText.innerText = "Kepala Sekolah"; welcomeTitle.innerText = "Monitoring Kepala Sekolah";
-                const activeNav = document.querySelector('.nav-links a.active');
-                if(activeNav && ['nav-bank-soal'].includes(activeNav.id)) navigate('dashboard');
+        function cekStatusLogin() {
+            const savedUser = localStorage.getItem('sang21_username');
+            if(savedUser && DATABASE_PENGGUNA[savedUser]) {
+                // Berhasil Login via Session
+                const userData = DATABASE_PENGGUNA[savedUser];
+                userRole = userData.role;
+                userName = userData.namaLengkap;
+                
+                document.getElementById('login-overlay').style.display = 'none';
+                applyRoleUI();
+                navigate('dashboard');
             } else {
-                roleText.innerText = "Siswa"; welcomeTitle.innerText = "Halo, Semangat Belajar!";
-                const activeNav = document.querySelector('.nav-links a.active');
-                if(activeNav && ['nav-siswa', 'nav-bank-soal', 'nav-analisis'].includes(activeNav.id)) navigate('dashboard');
+                // Belum Login
+                document.getElementById('login-overlay').style.display = 'flex';
             }
         }
 
-        function showLoginModal() { document.getElementById('modal-login').style.display = 'flex'; }
-        function setRole(role) {
-            userRole = role;
-            localStorage.setItem('sang21_role', role);
-            closeModal('modal-login');
-            applyRoleUI();
-            navigate('dashboard');
+        function prosesLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('login-username').value.trim();
+            const p = document.getElementById('login-password').value.trim();
+
+            if(DATABASE_PENGGUNA[u] && DATABASE_PENGGUNA[u].password === p) {
+                // Login Sukses
+                localStorage.setItem('sang21_username', u);
+                cekStatusLogin();
+            } else {
+                alert("Login Gagal! Username atau Password Anda salah.");
+            }
+        }
+
+        function toggleLogoutMenu() {
+            const menu = document.getElementById('logout-menu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function prosesLogout() {
+            if(confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
+                localStorage.removeItem('sang21_username');
+                window.location.reload(); // Refresh akan otomatis memunculkan layar login lagi
+            }
+        }
+
+        function applyRoleUI() {
+            // Update CSS Rules di Tag Body
+            document.body.className = ''; 
+            if(localStorage.getItem('sang21_theme') === 'dark') document.body.classList.add('dark-mode');
+            document.body.classList.add(`role-${userRole}`);
+
+            // Update UI Teks
+            document.getElementById('current-role-text').innerText = userName;
+            document.getElementById('exam-siswa-name').innerText = userName;
+            
+            const welcomeTitle = document.getElementById('welcome-title');
+            if(userRole === 'guru') welcomeTitle.innerText = "Dashboard Admin / Guru";
+            else if(userRole === 'kepsek') welcomeTitle.innerText = "Monitoring Kepala Sekolah";
+            else welcomeTitle.innerText = "Halo, Semangat Belajar!";
         }
 
         // ==========================================
@@ -453,7 +525,7 @@
             const activeNav = document.getElementById(`nav-${sectionId}`);
             if(activeNav) activeNav.classList.add('active');
 
-            // Eksekusi fungsi sesuai halaman (dan role)
+            // Eksekusi fungsi halaman sesuai hak akses
             if(sectionId === 'siswa' && (userRole === 'guru' || userRole === 'kepsek')) renderSiswaTable();
             if(sectionId === 'bank-soal' && userRole === 'guru') renderSoalTable();
             if(sectionId === 'dashboard' || sectionId === 'analisis') { 
@@ -462,7 +534,11 @@
         }
 
         function toggleSidebar() { const sb = document.getElementById('sidebar'); sb.style.display = (sb.style.display === 'none') ? 'flex' : 'none'; }
-        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('sang21_theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); loadChartsEngine(); }
+        function toggleDarkMode() { 
+            document.body.classList.toggle('dark-mode'); 
+            localStorage.setItem('sang21_theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); 
+            loadChartsEngine(); 
+        }
         function closeModal(id) { document.getElementById(id).style.display = "none"; }
 
         // ==========================================
@@ -707,7 +783,7 @@
             localStorage.removeItem('sang21_draft_ans');
 
             document.getElementById('exam-interface').style.display = "none";
-            alert(`Ujian Selesai! Nilai Sementara Kamu: ${nilai}`);
+            alert(`Ujian Selesai! Nilai Akhir Kamu: ${nilai}`);
             
             if(userRole === 'siswa') navigate('dashboard');
             else navigate('analisis');
@@ -774,7 +850,7 @@
                 </head>
                 <body>
                     <div class="header"><h1>BUKTI HASIL UJIAN</h1><p>Sistem Manajemen Pembelajaran SANG21</p></div>
-                    <p style="font-size: 16px;">Nama Siswa: <b>Peserta Ujian</b></p>
+                    <p style="font-size: 16px;">Nama Siswa: <b>${userName}</b></p>
                     <div class="score-container"><h3>Nilai Akhir</h3><div class="score-value">${lastScore}</div></div>
                     <div class="footer">Dicetak otomatis pada: ${tanggalCetak}</div>
                     <script> window.onload = function() { window.print(); } <\/script>
@@ -788,10 +864,17 @@
         // INIT SAAT PERTAMA LOAD
         // ==========================================
         document.addEventListener("DOMContentLoaded", () => {
-            if(localStorage.getItem('sang21_theme') === 'dark') document.body.classList.add('dark-mode');
+            // Hapus menu Logout saat di-klik di luar elemennya
+            document.addEventListener('click', function(event) {
+                const profileBtn = document.querySelector('.user-profile');
+                const logoutMenu = document.getElementById('logout-menu');
+                if (!profileBtn.contains(event.target) && !logoutMenu.contains(event.target)) {
+                    logoutMenu.style.display = 'none';
+                }
+            });
+
             inisialisasiDomain(); // Baca domain url
-            applyRoleUI();        // Terapkan batas akses CSS
-            navigate('dashboard');// Load halaman beranda
+            cekStatusLogin();     // Tampilkan layar login jika belum login
         });
     </script>
 </body>
