@@ -286,9 +286,12 @@
         </div>
     </div>
 
-   <div class="modal" id="modal-soal">
+  <div class="modal" id="modal-soal">
         <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header"><h3 id="modal-soal-title">Pembuatan Soal</h3><span class="close" onclick="closeModal('modal-soal')">&times;</span></div>
+            <div class="modal-header">
+                <h3 id="modal-soal-title">Pembuatan Soal</h3>
+                <span class="close" onclick="closeModal('modal-soal')">&times;</span>
+            </div>
             <form id="form-soal" onsubmit="saveSoal(event)">
                 <select id="soal-jenis" class="form-control" required onchange="handleJenisSoalChange()">
                     <option value="pilihan_ganda">Pilihan Ganda</option>
@@ -296,6 +299,7 @@
                     <option value="isian_singkat">Isian Singkat</option>
                     <option value="uraian_hots">Uraian Panjang / Esai (HOTS)</option>
                 </select>
+                
                 <textarea id="soal-teks" class="form-control" rows="4" required placeholder="Ketik cerita, teks bacaan (stimulus), atau pertanyaan di sini..."></textarea>
                 
                 <div id="box-opsi-pg">
@@ -307,6 +311,16 @@
                     </div>
                 </div>
 
+                <input type="text" id="soal-kunci" class="form-control" required placeholder="Kunci Jawaban (Cth: A, Benar, atau Kata Kunci Esai)">
+                
+                <textarea id="soal-pedoman" class="form-control" rows="2" placeholder="Pedoman Pengskoran (Opsional: Langkah/Bobot Esai)"></textarea>
+
+                <input type="number" id="soal-bobot" class="form-control" required placeholder="Bobot/Skor Soal (Contoh: 10, 20)" min="1">
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Simpan Soal ke Supabase</button>
+            </form>
+        </div>
+    </div>
                 <input type="text" id="soal-kunci" class="form-control" required placeholder="Kunci Jawaban (Cth: A, Benar, atau Kata Kunci Esai)">
                 
                 <input type="number" id="soal-bobot" class="form-control" required placeholder="Bobot/Skor Soal (Contoh: 10, 20)" min="1">
@@ -558,28 +572,43 @@
 
         function showSoalModal() { document.getElementById('form-soal').reset(); handleJenisSoalChange(); document.getElementById('modal-soal').style.display = 'flex'; }
 
-        async function saveSoal(e) {
+      async function saveSoal(e) {
             e.preventDefault();
             const jenis = document.getElementById('soal-jenis').value;
             let opsiData = {};
+            
             if(jenis === 'pilihan_ganda') {
-                opsiData = { A: document.getElementById('opsi-a').value, B: document.getElementById('opsi-b').value, C: document.getElementById('opsi-c').value, D: document.getElementById('opsi-d').value };
-            } else if(jenis === 'benar_salah') { opsiData = { A: "Benar", B: "Salah" }; }
+                opsiData = { 
+                    A: document.getElementById('opsi-a').value, 
+                    B: document.getElementById('opsi-b').value, 
+                    C: document.getElementById('opsi-c').value, 
+                    D: document.getElementById('opsi-d').value 
+                };
+            } else if(jenis === 'benar_salah') { 
+                opsiData = { A: "Benar", B: "Salah" }; 
+            }
 
-            // Menangkap nilai bobot dari form
+            // Menangkap nilai bobot dan pedoman dari form
             const bobotSoal = parseInt(document.getElementById('soal-bobot').value) || 0;
+            const pedomanSoal = document.getElementById('soal-pedoman').value;
 
+            // Memasukkan datanya ke payload Supabase
             const payload = { 
                 jenis: jenis, 
                 soal: document.getElementById('soal-teks').value, 
                 opsi: opsiData, 
                 kunci: document.getElementById('soal-kunci').value,
-                bobot: bobotSoal // Menyimpan data bobot ke database
+                bobot: bobotSoal,
+                pedoman_pengskoran: pedomanSoal // Pastikan nama kolom di database sesuai
             };
-            
+
             const { error } = await supabaseClient.from('bank_soal').insert([payload]);
-            if(error) alert("Gagal simpan soal: " + error.message);
-            closeModal('modal-soal'); renderSoalTable();
+            if(error) {
+                alert("Gagal simpan soal: " + error.message);
+            } else {
+                closeModal('modal-soal'); 
+                renderSoalTable();
+            }
         }
         async function deleteSoal(id) { if(confirm("Hapus soal dari Supabase?")) { await supabaseClient.from('bank_soal').delete().eq('id', id); renderSoalTable(); } }
 
